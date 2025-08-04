@@ -1,0 +1,215 @@
+import db from "@/lib/database";
+import { TreatmentUpdate } from "@/types";
+import { NextRequest, NextResponse } from "next/server";
+
+// GET: 特定の施術データを取得
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; treatmentId: string }> }
+) {
+  try {
+    const { id, treatmentId } = await params;
+    const customerId = parseInt(id);
+    const treatmentIdNum = parseInt(treatmentId);
+
+    if (isNaN(customerId) || isNaN(treatmentIdNum)) {
+      return NextResponse.json({ error: "無効なIDです" }, { status: 400 });
+    }
+
+    const treatment = db
+      .prepare(
+        `
+      SELECT t.*, c.name as customer_name 
+      FROM treatments t
+      JOIN customers c ON t.customer_id = c.id
+      WHERE t.id = ? AND t.customer_id = ?
+    `
+      )
+      .get(treatmentIdNum, customerId);
+
+    if (!treatment) {
+      return NextResponse.json(
+        { error: "施術が見つかりません" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(treatment);
+  } catch (error) {
+    console.error("施術データ取得エラー:", error);
+    return NextResponse.json(
+      { error: "施術データの取得に失敗しました" },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT: 施術データの更新
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; treatmentId: string }> }
+) {
+  try {
+    const { id, treatmentId } = await params;
+    const customerId = parseInt(id);
+    const treatmentIdNum = parseInt(treatmentId);
+
+    if (isNaN(customerId) || isNaN(treatmentIdNum)) {
+      return NextResponse.json({ error: "無効なIDです" }, { status: 400 });
+    }
+
+    const body: TreatmentUpdate = await request.json();
+
+    // 施術の存在確認
+    const existingTreatment = db
+      .prepare(
+        `
+      SELECT * FROM treatments 
+      WHERE id = ? AND customer_id = ?
+    `
+      )
+      .get(treatmentIdNum, customerId);
+
+    if (!existingTreatment) {
+      return NextResponse.json(
+        { error: "施術が見つかりません" },
+        { status: 404 }
+      );
+    }
+
+    // 更新可能なフィールドのリスト
+    const updateFields = [
+      "customer_id",
+      "treatment_date",
+      "treatment_time",
+      "stylist_name",
+      "treatment_content1",
+      "treatment_content2",
+      "treatment_content3",
+      "treatment_content4",
+      "treatment_content5",
+      "treatment_content6",
+      "treatment_content7",
+      "treatment_content8",
+      "style_memo",
+      "used_chemicals",
+      "solution1_time",
+      "solution2_time",
+      "color_time1",
+      "color_time2",
+      "other_details",
+      "retail_product1",
+      "retail_product1_quantity",
+      "retail_product1_price",
+      "retail_product2",
+      "retail_product2_quantity",
+      "retail_product2_price",
+      "retail_product3",
+      "retail_product3_quantity",
+      "retail_product3_price",
+      "notes",
+      "conversation_content",
+      "treatment_fee",
+      "treatment_discount_amount",
+      "treatment_discount_type",
+      "retail_fee",
+      "retail_discount_amount",
+      "retail_discount_type",
+      "total_amount",
+      "payment_method",
+      "next_appointment_date",
+      "next_appointment_time",
+    ];
+
+    // 更新するフィールドを動的に構築
+    const setClause = updateFields
+      .filter((field) => body[field as keyof TreatmentUpdate] !== undefined)
+      .map((field) => `${field} = ?`)
+      .join(", ");
+
+    if (!setClause) {
+      return NextResponse.json(
+        { error: "更新するデータがありません" },
+        { status: 400 }
+      );
+    }
+
+    const query = `
+      UPDATE treatments 
+      SET ${setClause}, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ? AND customer_id = ?
+    `;
+
+    const updateParams = updateFields
+      .filter((field) => body[field as keyof TreatmentUpdate] !== undefined)
+      .map((field) => body[field as keyof TreatmentUpdate]);
+
+    db.prepare(query).run(...updateParams, treatmentIdNum, customerId);
+
+    const updatedTreatment = db
+      .prepare(
+        `
+      SELECT t.*, c.name as customer_name 
+      FROM treatments t
+      JOIN customers c ON t.customer_id = c.id
+      WHERE t.id = ? AND t.customer_id = ?
+    `
+      )
+      .get(treatmentIdNum, customerId);
+
+    return NextResponse.json(updatedTreatment);
+  } catch (error) {
+    console.error("施術更新エラー:", error);
+    return NextResponse.json(
+      { error: "施術の更新に失敗しました" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE: 施術データの削除
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; treatmentId: string }> }
+) {
+  try {
+    const { id, treatmentId } = await params;
+    const customerId = parseInt(id);
+    const treatmentIdNum = parseInt(treatmentId);
+
+    if (isNaN(customerId) || isNaN(treatmentIdNum)) {
+      return NextResponse.json({ error: "無効なIDです" }, { status: 400 });
+    }
+
+    // 施術の存在確認
+    const existingTreatment = db
+      .prepare(
+        `
+      SELECT * FROM treatments 
+      WHERE id = ? AND customer_id = ?
+    `
+      )
+      .get(treatmentIdNum, customerId);
+
+    if (!existingTreatment) {
+      return NextResponse.json(
+        { error: "施術が見つかりません" },
+        { status: 404 }
+      );
+    }
+
+    // 関連する画像データも削除される（CASCADE制約により）
+    db.prepare("DELETE FROM treatments WHERE id = ? AND customer_id = ?").run(
+      treatmentIdNum,
+      customerId
+    );
+
+    return NextResponse.json({ message: "施術が正常に削除されました" });
+  } catch (error) {
+    console.error("施術削除エラー:", error);
+    return NextResponse.json(
+      { error: "施術の削除に失敗しました" },
+      { status: 500 }
+    );
+  }
+}
