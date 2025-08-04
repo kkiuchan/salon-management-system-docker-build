@@ -23,35 +23,49 @@ export async function GET() {
     let hostIP = localIPs.length > 0 ? localIPs[0] : null;
 
     // 環境変数でホストIPが指定されている場合はそれを使用
-    if (process.env.HOST_IP && process.env.HOST_IP !== "auto") {
+    if (process.env.HOST_IP) {
       hostIP = process.env.HOST_IP;
-      console.log("Using HOST_IP from environment:", hostIP);
     } else if (
       hostIP &&
       (hostIP.startsWith("172.") || hostIP.startsWith("10."))
     ) {
-      // Docker環境の場合、環境変数から正しいホストIPを取得
-      console.log("Docker environment detected, container IP:", hostIP);
+      // Docker環境の場合、ホストマシンのIPアドレスを推測
+      try {
+        const { exec } = require("child_process");
+        const { promisify } = require("util");
+        const execAsync = promisify(exec);
 
-      // 環境変数から設定されたHOST_IPを使用（start-docker.shで設定）
-      if (process.env.HOST_IP && process.env.HOST_IP !== "auto") {
-        hostIP = process.env.HOST_IP;
-        console.log("Using HOST_IP from start script:", hostIP);
-      } else {
-        // フォールバック: よく使われるプライベートIPレンジを推測
-        console.log("No HOST_IP provided, keeping container IP as fallback");
-      }
-    }
+        // ホストマシンのIPアドレス取得を試行
+        try {
+          // Dockerホストのゲートウェイを取得
+          const { stdout } = await execAsync(
+            "ip route show default | awk '/default/ { print $3 }'"
+          );
+          const gatewayIP = stdout.trim();
 
-    // IPアドレスの妥当性チェック
-    if (hostIP) {
-      const ipParts = hostIP.split(".");
-      if (ipParts.length === 4) {
-        // 無効なIPアドレス（.0で終わるネットワークアドレス等）をチェック
-        if (ipParts[3] === "0" || ipParts[3] === "255") {
-          console.log("Invalid IP detected, using fallback");
-          hostIP = null;
+          if (gatewayIP && gatewayIP !== "0.0.0.0") {
+            console.log("Docker gateway IP:", gatewayIP);
+            // 実際のホストネットワークインターフェースを確認
+            try {
+              const { stdout: hostNetworks } = await execAsync(
+                "ip route | grep -E '^(192\\.168\\.|10\\.|172\\.(1[6-9]|2[0-9]|3[01])\\.)' | head -1 | awk '{print $1}' | cut -d'/' -f1"
+              );
+              const potentialHostIP = hostNetworks.trim();
+              if (potentialHostIP && potentialHostIP !== hostIP) {
+                hostIP = potentialHostIP;
+                console.log("Detected host IP:", hostIP);
+              }
+            } catch (error) {
+              console.log(
+                "Could not detect host network, keeping container IP"
+              );
+            }
+          }
+        } catch (error) {
+          console.log("Host IP detection failed, using container IP");
         }
+      } catch (error) {
+        // exec が利用できない場合はそのまま
       }
     }
 
@@ -65,7 +79,6 @@ export async function GET() {
       isDocker:
         process.env.NODE_ENV === "production" && os.hostname().length === 12,
       hostIPSource: process.env.HOST_IP ? "environment" : "detected",
-      environmentHostIP: process.env.HOST_IP || null,
     });
   } catch (error) {
     console.error("ネットワーク情報取得エラー:", error);

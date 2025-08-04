@@ -74,9 +74,10 @@ export default function CustomerDetailPage({
   const [submitting, setSubmitting] = useState(false);
   const [treatmentToDelete, setTreatmentToDelete] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [networkInfo, setNetworkInfo] = useState<{ localIPs: string[] } | null>(
-    null
-  );
+  const [networkInfo, setNetworkInfo] = useState<{
+    localIPs: string[];
+    localIp?: string;
+  } | null>(null);
 
   // paramsを非同期で取得
   const [customerId, setCustomerId] = useState<string>("");
@@ -590,10 +591,9 @@ export default function CustomerDetailPage({
             {/* QRコードセクション（PCのみ表示） */}
             <div className="mt-6 hidden lg:block">
               {(() => {
-                const qrUrl =
-                  networkInfo?.localIPs && networkInfo.localIPs.length > 0
-                    ? `http://${networkInfo.localIPs[0]}:3000/customers/${customer.id}`
-                    : "";
+                const qrUrl = networkInfo?.localIp
+                  ? `http://${networkInfo.localIp}:3000/customers/${customer.id}`
+                  : "";
                 console.log("QRコードURL:", qrUrl);
                 return (
                   <QRCodeDisplay

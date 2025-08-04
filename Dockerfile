@@ -1,28 +1,24 @@
 # 美容室管理システム - Docker配布用
 FROM node:18-alpine AS base
 
-# 必要なツールとライブラリをインストール
+# 必要なツールとライブラリをインストール（ネイティブモジュールビルド用ツールを追加）
 RUN apk add --no-cache \
     libc6-compat \
     sqlite \
-    curl
-
-# 依存関係のインストール
-FROM base AS deps
-WORKDIR /app
-
-# package.jsonをコピー
-COPY package.json package-lock.json* ./
-
-# 依存関係をインストール（開発依存関係も含む）
-RUN npm ci
+    curl \
+    python3 \
+    make \
+    g++
 
 # アプリケーションのビルド
 FROM base AS builder
 WORKDIR /app
 
-# 依存関係をコピー
-COPY --from=deps /app/node_modules ./node_modules
+# package.jsonをコピー
+COPY package.json package-lock.json* ./
+
+# 依存関係をDocker内でインストール（ネイティブモジュールも含む）
+RUN npm ci
 
 # ソースコードをコピー
 COPY . .
@@ -44,10 +40,10 @@ RUN addgroup --system --gid 1001 nodejs && \
 # 必要なディレクトリを作成
 RUN mkdir -p /app/data/uploads /app/backups /app/logs
 
-# 本番用ファイルをコピー
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# Next.js standalone出力をコピー
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # データベース初期化スクリプトをコピー
 COPY --from=builder /app/scripts ./scripts
