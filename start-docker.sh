@@ -25,6 +25,25 @@ if ! command -v ifconfig &> /dev/null; then
     fi
 fi
 
+# ---- ③ 必要なディレクトリ作成と権限修正 ----
+echo "必要なディレクトリを作成・権限設定中..."
+mkdir -p data backups logs data/uploads
+
+# 権限問題を解決（nextjsユーザーのUID:1001に設定）
+echo "ディレクトリ権限を修正中..."
+if chown -R 1001:1001 data backups logs 2>/dev/null; then
+    echo "✅ 権限設定が完了しました（通常権限で実行）"
+else
+    echo "通常の権限変更に失敗。sudoを使用します..."
+    if sudo chown -R 1001:1001 data backups logs; then
+        echo "✅ 権限設定が完了しました（sudo権限で実行）"
+    else
+        echo "❌ 権限設定に失敗しました。手動で実行してください："
+        echo "  sudo chown -R 1001:1001 data backups logs"
+        exit 1
+    fi
+fi
+
 # ホストマシンのIPアドレスを自動検出
 echo "ホストIPアドレスを検出中..."
 HOST_IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | head -1 | awk '{print $2}')
