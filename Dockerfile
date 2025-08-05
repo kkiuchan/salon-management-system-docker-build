@@ -51,11 +51,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder /app/scripts ./scripts
 
 # 起動スクリプトをコピー
-COPY --chown=nextjs:nodejs start-app.sh ./start-app.sh
+COPY start-app.sh ./start-app.sh
 RUN chmod +x ./start-app.sh
-
-# データディレクトリの権限を設定
-RUN chown -R nextjs:nodejs /app/data /app/backups /app/logs
 
 # 非rootユーザーに切り替え
 USER nextjs
