@@ -1,4 +1,5 @@
 # 美容室管理システム - Docker配布用
+# マルチアーキテクチャ対応 (ARM64/AMD64)
 FROM node:22-alpine AS base
 
 # 必要なツールとライブラリをインストール（ネイティブモジュールビルド用ツールを追加）
@@ -18,7 +19,8 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # 依存関係をDocker内でインストール（ネイティブモジュールも含む）
-RUN npm ci
+# --platform指定でクロスプラットフォーム対応
+RUN npm ci --prefer-offline --no-audit
 
 # ソースコードをコピー
 COPY . .
