@@ -1,13 +1,16 @@
 @echo off
+setlocal enabledelayedexpansion
 chcp 65001 >nul
 
 echo 美容室管理システム - Docker版を起動します...
 
 REM ホストマシンのIPアドレスを自動検出
 echo ホストIPアドレスを検出中...
+set "HOST_IP="
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /C:"IPv4"') do (
     for /f "tokens=1" %%b in ("%%a") do (
-        set HOST_IP=%%b
+        set "HOST_IP=%%b"
+        set "HOST_IP=!HOST_IP:~1!"  REM 先頭の空白を除去
         goto :found_ip
     )
 )
@@ -46,4 +49,4 @@ if not "%HOST_IP%"=="auto" (
 )
 echo 📝 ログ確認: docker-compose logs -f salon-management
 echo ⏹️  停止方法: stop-docker.bat
-pause 
+pause

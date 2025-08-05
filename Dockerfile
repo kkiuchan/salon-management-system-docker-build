@@ -65,6 +65,7 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV HOST=0.0.0.0
 
 # 起動スクリプトでアプリケーションを起動
 CMD ["./start-app.sh"] 

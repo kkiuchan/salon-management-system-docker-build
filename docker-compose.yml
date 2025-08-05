@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   salon-management:
     build: .
@@ -22,10 +24,4 @@ services:
       retries: 3
       start_period: 40s
 
-volumes:
-  data:
-    driver: local
-  backups:
-    driver: local
-  logs:
-    driver: local
+

@@ -2,6 +2,29 @@
 
 echo "美容室管理システム - Docker版を起動します..."
 
+# ---- ① Docker権限チェック ----
+if ! docker info &>/dev/null; then
+    echo "[ERROR] Dockerデーモンに接続できません。"
+    echo "おそらく現在のユーザーが docker グループに追加されていないためです。"
+    echo ""
+    echo "次のコマンドを実行し、ログアウト＆再ログインしてください："
+    echo "  sudo usermod -aG docker $USER"
+    echo ""
+    echo "あるいは、このスクリプトを sudo 付きで再実行してください："
+    echo "  sudo ./start-docker.sh"
+    exit 1
+fi
+
+# ---- ② ifconfig なければ net-tools をインストール（Ubuntu）----
+if ! command -v ifconfig &> /dev/null; then
+    echo "[INFO] ifconfig が見つかりません。net-tools をインストールします..."
+    if [ -f /etc/debian_version ]; then
+        sudo apt update && sudo apt install -y net-tools
+    else
+        echo "[WARN] 自動インストールに非対応の環境です。手動で ifconfig をインストールしてください。"
+    fi
+fi
+
 # ホストマシンのIPアドレスを自動検出
 echo "ホストIPアドレスを検出中..."
 HOST_IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | head -1 | awk '{print $2}')
