@@ -39,8 +39,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# 必要なディレクトリを作成
-RUN mkdir -p /app/data/uploads /app/backups /app/logs
+# ボリュームマウントされるディレクトリは作成しない
+# （docker-compose.ymlでマウントされ、start-app.shで権限チェック・作成）
 
 # Next.js standalone出力をコピー
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
@@ -51,7 +51,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder /app/scripts ./scripts
 
 # 起動スクリプトをコピー
-COPY start-app.sh ./start-app.sh
+COPY --chown=nextjs:nodejs start-app.sh ./start-app.sh
 RUN chmod +x ./start-app.sh
 
 # データディレクトリの権限を設定
