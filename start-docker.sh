@@ -46,7 +46,16 @@ fi
 
 # ホストマシンのIPアドレスを自動検出
 echo "ホストIPアドレスを検出中..."
-HOST_IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | head -1 | awk '{print $2}')
+
+# 方法1: ip コマンド（Ubuntu標準）
+if command -v ip >/dev/null 2>&1; then
+    HOST_IP=$(ip route get 1.1.1.1 | awk '{print $7; exit}' 2>/dev/null)
+fi
+
+# 既存のifconfigベースの検出をフォールバックとして維持
+if [ -z "$HOST_IP" ]; then
+    HOST_IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | head -1 | awk '{print $2}')
+fi
 
 if [ -z "$HOST_IP" ]; then
     # macOSの場合の代替方法
