@@ -50,6 +50,12 @@ if [ "$permission_ok" = false ]; then
     exit 1
 fi
 
+# コンテナ内でディレクトリの権限を確実に設定
+echo "🔧 コンテナ内ディレクトリの権限を設定中..."
+chown -R nextjs:nextjs /app/data /app/backups /app/logs 2>/dev/null || true
+chmod -R 775 /app/backups 2>/dev/null || true
+chmod -R 664 /app/data/*.db 2>/dev/null || true
+
 # 必要なサブディレクトリを作成
 echo "必要なサブディレクトリを作成中..."
 mkdir -p /app/data/uploads
@@ -84,7 +90,7 @@ check_database_integrity() {
 # データベース初期化処理
 # データベースファイルの存在確認（サイズチェックのみ）
 if [ -f "/app/data/salon.db" ] && [ -s "/app/data/salon.db" ]; then
-    local file_size=$(stat -f%z "/app/data/salon.db" 2>/dev/null || stat -c%s "/app/data/salon.db" 2>/dev/null || echo "0")
+    file_size=$(stat -f%z "/app/data/salon.db" 2>/dev/null || stat -c%s "/app/data/salon.db" 2>/dev/null || echo "0")
     if [ "$file_size" -gt 50000 ]; then
         echo "✅ データベースファイルが既に存在します (${file_size} bytes)"
         db_needs_init=false

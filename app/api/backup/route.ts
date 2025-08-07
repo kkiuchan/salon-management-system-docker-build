@@ -7,7 +7,15 @@ import path from "path";
 
 // バックアップディレクトリの作成
 const createBackupDirectory = (backupName: string) => {
-  const backupDir = path.join(process.cwd(), "backups", backupName);
+  // /app/data/backups を使用（権限が既に設定されているため）
+  const backupsRoot = path.join(dataDir, "backups");
+
+  // バックアップルートディレクトリを作成
+  if (!fs.existsSync(backupsRoot)) {
+    fs.mkdirSync(backupsRoot, { recursive: true });
+  }
+
+  const backupDir = path.join(backupsRoot, backupName);
   const databaseDir = path.join(backupDir, "database");
   const imagesDir = path.join(backupDir, "images");
   const exportsDir = path.join(backupDir, "exports");
@@ -639,7 +647,7 @@ export async function GET(request: NextRequest) {
 
     if (format === "zip") {
       // ZIPファイル作成
-      const zipPath = path.join(process.cwd(), "backups", `${backupName}.zip`);
+      const zipPath = path.join(dataDir, "backups", `${backupName}.zip`);
       const output = fs.createWriteStream(zipPath);
       const archive = archiver("zip", { zlib: { level: 9 } });
 
