@@ -107,8 +107,10 @@ if ! check_database_integrity; then
         rm "/app/data/salon.db"
     fi
     
-    if node scripts/init-database.js; then
+    if node scripts/safe-init-database.js; then
         echo "✅ データベースの初期化が完了しました"
+        # データベースファイルの権限を設定
+        chmod 664 /app/data/salon.db 2>/dev/null || true
     else
         echo "❌ データベース初期化に失敗しました"
         
@@ -117,6 +119,7 @@ if ! check_database_integrity; then
         if [ -n "$latest_backup" ] && [ -f "$latest_backup" ]; then
             echo "最新のバックアップ ($latest_backup) からの復旧を試行します..."
             cp "$latest_backup" "/app/data/salon.db"
+            chmod 664 /app/data/salon.db 2>/dev/null || true
             if check_database_integrity; then
                 echo "✅ バックアップからの復旧に成功しました"
             else
