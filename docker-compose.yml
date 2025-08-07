@@ -1,8 +1,9 @@
-version: "3.8"
-
 services:
   salon-management:
-    image: salon-test:latest
+    # プリビルドイメージを使用（GitHub Container Registry）
+    image: ghcr.io/your-username/salon-management-system:latest
+    # ローカル開発用（必要に応じてコメントアウト）
+    # image: salon-test:latest
     ports:
       - "3000:3000"
     environment:
@@ -12,10 +13,9 @@ services:
     volumes:
       # データベースと画像ファイルを永続化
       - ./data:/app/data
-      # バックアップディレクトリを永続化
-      - ./backups:/app/backups
       # ログディレクトリを永続化
       - ./logs:/app/logs
+      # 注意: バックアップは /app/data/backups に保存されるため、/app/backups のマウントは不要
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]

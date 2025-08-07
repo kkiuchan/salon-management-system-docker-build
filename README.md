@@ -2,11 +2,28 @@
 
 顧客管理、施術記録、売上分析、QR コードでのモバイルアクセスに対応した美容室向け管理システムです。
 
-## 🚀 起動方法
+## 🚀 クイックスタート
 
-### 推奨: ビルド済み版（高速起動）
+### 方法1: 設定ファイルのみダウンロード（推奨）
 
 ```bash
+# 作業ディレクトリを作成
+mkdir salon-management && cd salon-management
+
+# 必要ファイルをダウンロード
+curl -O https://raw.githubusercontent.com/your-username/salon-management-system/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/your-username/salon-management-system/main/start-docker.sh
+
+# 起動（Linux/macOS）
+chmod +x start-docker.sh && ./start-docker.sh
+```
+
+### 方法2: リポジトリクローン
+
+```bash
+git clone https://github.com/your-username/salon-management-system.git
+cd salon-management-system
+
 # Linux/macOS
 ./start-docker.sh
 
@@ -14,19 +31,11 @@
 start-docker.bat
 ```
 
-### 手動起動
+### 方法3: 手動起動
 
 ```bash
-# 最新版をダウンロードして起動
-docker-compose pull
-docker-compose up -d
-```
-
-### 開発者向け（ローカルビルド）
-
-```bash
-# ローカルでビルドして起動（時間がかかります）
-docker-compose -f docker-compose.dev.yml up -d
+# プリビルドイメージを使用（高速）
+docker compose pull && docker compose up -d
 ```
 
 ## 📱 アクセス方法

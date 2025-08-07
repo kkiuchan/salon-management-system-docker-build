@@ -1,180 +1,204 @@
-# 🚀 デプロイメントガイド
+# 🚀 サロン管理システム デプロイメントガイド
 
-GitHub Actions を使用したビルド済み Docker イメージの自動配布ガイドです。
+プリビルドされたDockerイメージを使用した簡単デプロイメント手順です。
 
-## 📋 事前準備
+## 📋 システム要件
 
-### 1. GitHub リポジトリ設定
+- **Docker & Docker Compose**
+- **Linux/macOS/Windows**（Docker Desktop）
+- **インターネット接続**（初回イメージダウンロード用）
 
-```bash
-# リポジトリ設定
-Settings → General → Features
-☑️ Packages を有効化
+## 🚀 クイックスタート（推奨）
 
-# Container Registry の権限設定
-Settings → Actions → General
-Workflow permissions: Read and write permissions
-```
+### 方法1: 設定ファイルのみダウンロード
 
-### 2. リポジトリ名の設定
-
-`docker-compose.yml` の以下の部分を実際のリポジトリ名に変更：
-
-```yaml
-# 変更前
-image: ghcr.io/your-username/salon-management-system:latest
-
-# 変更後（例）
-image: ghcr.io/tanaka-salon/salon-management-system:latest
-```
-
-## 🔄 リリースプロセス
-
-### 初回セットアップ
+最新版を使用する場合の推奨方法です：
 
 ```bash
-# 1. GitHub Actions ファイルをコミット
-git add .github/
-git commit -m "feat: add GitHub Actions CI/CD"
-git push origin main
+# 作業ディレクトリを作成
+mkdir salon-management-system
+cd salon-management-system
 
-# 2. 初回リリース
-git tag v1.0.0
-git push origin v1.0.0
+# 必要なファイルをダウンロード
+curl -O https://raw.githubusercontent.com/your-username/salon-management-system/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/your-username/salon-management-system/main/start-docker.sh
+curl -O https://raw.githubusercontent.com/your-username/salon-management-system/main/start-docker.bat
+
+# 権限設定（Linux/macOS）
+chmod +x start-docker.sh
+
+# システム起動
+./start-docker.sh  # Linux/macOS
+# または
+start-docker.bat   # Windows
 ```
 
-### 通常のリリース
+### 方法2: リポジトリクローン
 
 ```bash
-# 1. 機能開発・修正
-git add .
-git commit -m "feat: 新機能追加"
-git push origin main
+# リポジトリをクローン
+git clone https://github.com/your-username/salon-management-system.git
+cd salon-management-system
 
-# 2. バージョンタグを作成
-git tag v1.1.0
-git push origin v1.1.0
-
-# 3. GitHub Actions が自動実行
-# → ビルド → テスト → Docker イメージ作成 → 配布
+# システム起動
+./start-docker.sh  # Linux/macOS
+# または
+start-docker.bat   # Windows
 ```
 
-## 📦 ビルド確認
+## 🔧 手動起動（上級者向け）
 
-### GitHub Actions の確認
+```bash
+# 必要なディレクトリを作成
+mkdir -p data logs
 
-1. GitHub リポジトリの **Actions** タブを開く
-2. **Build and Release Docker Image** ワークフローを確認
-3. 緑色のチェックマークで成功を確認
+# 権限設定（Linux/macOS）
+sudo chown -R 1001:1001 data logs
 
-### パッケージ確認
-
-1. GitHub リポジトリの **Packages** タブを開く
-2. `salon-management-system` パッケージを確認
-3. バージョン一覧とダウンロード数を確認
-
-## 🏥 顧客への配布
-
-### 配布ファイル
-
-顧客には以下のファイルを提供：
-
-```
-salon-management-system-release/
-├── docker-compose.yml       # ビルド済みイメージ使用
-├── start-docker.sh         # Linux/macOS起動スクリプト
-├── start-docker.bat        # Windows起動スクリプト
-├── stop-docker.sh          # 停止スクリプト
-├── stop-docker.bat         # Windows停止スクリプト
-└── README.md              # 使用方法
+# Docker Compose でシステム起動
+docker compose pull  # 最新イメージを取得
+docker compose up -d  # バックグラウンドで起動
 ```
 
-### 顧客の起動方法
+## 🌐 アクセス方法
+
+システム起動後、以下のURLでアクセス可能です：
+
+- **ローカル**: http://localhost:3000
+- **ネットワーク**: http://[ホストIP]:3000
+
+### QRコード表示用のIPアドレス設定
+
+システムは自動的にホストIPアドレスを検出しますが、手動で設定することも可能です：
+
+```bash
+# 環境変数でIPアドレスを指定
+HOST_IP=192.168.1.100 docker compose up -d
+```
+
+## 📁 ディレクトリ構造
+
+```
+salon-management-system/
+├── docker-compose.yml     # Docker設定ファイル
+├── start-docker.sh        # Linux/macOS用起動スクリプト
+├── start-docker.bat       # Windows用起動スクリプト
+├── data/                  # データベース・画像・バックアップ
+│   ├── salon.db          # SQLiteデータベース
+│   ├── uploads/          # 施術画像
+│   └── backups/          # システムバックアップ
+└── logs/                  # システムログ
+```
+
+## 🔒 セキュリティ考慮事項
+
+### ファイアウォール設定
+
+```bash
+# ポート3000を開放（必要に応じて）
+sudo ufw allow 3000/tcp  # Ubuntu
+```
+
+### データバックアップ
+
+システム内蔵のバックアップ機能を使用：
+
+- **自動バックアップ**: システム設定で定期バックアップを有効化
+- **手動バックアップ**: 管理画面からワンクリックバックアップ
+
+## 🛠️ トラブルシューティング
+
+### 一般的な問題
+
+#### 1. 権限エラー
 
 ```bash
 # Linux/macOS
-./start-docker.sh
+sudo chown -R 1001:1001 data logs
+chmod 775 data logs
 
 # Windows
-start-docker.bat
-
-# 手動起動
-docker-compose pull
-docker-compose up -d
+# Docker Desktop の設定でファイル共有を有効化
 ```
 
-## 🔧 トラブルシューティング
-
-### ビルドエラー
+#### 2. ポート競合
 
 ```bash
-# Actions タブでエラー詳細を確認
-# よくあるエラー：
-# 1. Dockerfile.build が見つからない
-# 2. パッケージ権限エラー
-# 3. マルチプラットフォームビルドエラー
+# 使用中のポートを確認
+netstat -an | grep 3000
+
+# 別のポートを使用
+sed -i 's/3000:3000/3001:3000/' docker-compose.yml
 ```
 
-### 権限エラー
+#### 3. イメージダウンロード失敗
 
 ```bash
-# Settings → Actions → General
-# Workflow permissions を確認
-# "Read and write permissions" を選択
+# 手動でイメージを取得
+docker pull ghcr.io/your-username/salon-management-system:latest
+
+# プライベートリポジトリの場合はログイン
+docker login ghcr.io
 ```
 
-### イメージが見つからない
+### ログ確認
 
 ```bash
-# パッケージの可視性を確認
-# Packages → salon-management-system → Settings
-# "Change visibility" → Public
+# システムログを確認
+docker compose logs -f salon-management
+
+# 特定の時間のログ
+docker compose logs --since="2024-01-01T10:00:00" salon-management
 ```
 
-## 📊 バージョン管理
-
-### セマンティックバージョニング
+## 🔄 アップデート手順
 
 ```bash
-v1.0.0  # メジャー.マイナー.パッチ
+# システム停止
+docker compose down
 
-# 例：
-v1.0.0  # 初回リリース
-v1.0.1  # バグフィックス
-v1.1.0  # 新機能追加
-v2.0.0  # 破壊的変更
+# 最新イメージを取得
+docker compose pull
+
+# システム再起動
+docker compose up -d
+
+# 動作確認
+curl -f http://localhost:3000/api/health
 ```
 
-### タグの例
+## 📞 サポート
 
-```bash
-# バグ修正
-git tag v1.0.1 -m "fix: QRコード表示の修正"
+問題が発生した場合：
 
-# 新機能
-git tag v1.1.0 -m "feat: 新しい売上レポート機能"
-
-# 大幅変更
-git tag v2.0.0 -m "feat!: データベース構造の大幅変更"
-```
-
-## 🎯 自動化の利点
-
-### 開発者側
-
-- ✅ タグ push するだけで自動配布
-- ✅ マルチプラットフォーム対応
-- ✅ バージョン管理の自動化
-- ✅ テストの自動実行
-
-### 顧客側
-
-- ✅ 30 秒で起動（ビルド不要）
-- ✅ 確実な動作（テスト済み）
-- ✅ 簡単な更新（docker-compose pull）
-- ✅ 安定性の向上
+1. **ログを確認**: `docker compose logs salon-management`
+2. **システム状態を確認**: `docker compose ps`
+3. **GitHubのIssues**: https://github.com/your-username/salon-management-system/issues
 
 ---
 
-**美容室管理システム CI/CD**  
-GitHub Actions + GitHub Container Registry
+## 🏗️ 開発者向け情報
+
+### ローカル開発
+
+```bash
+# 開発用イメージをビルド
+docker build -f Dockerfile.build -t salon-test:latest .
+
+# docker-compose.yml を編集
+# image: ghcr.io/... → image: salon-test:latest
+
+# 開発環境で起動
+docker compose up -d
+```
+
+### GitHub Actions による自動ビルド
+
+タグをプッシュすると自動的に新しいイメージがビルドされます：
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+ビルド状況は GitHub の Actions タブで確認可能です。
