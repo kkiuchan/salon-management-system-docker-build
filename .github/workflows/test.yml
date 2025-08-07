@@ -1,0 +1,54 @@
+name: Test Build
+
+# プルリクエストやmainブランチへのpushでテスト実行
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. ソースコードをチェックアウト
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Docker Buildx をセットアップ
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3. テスト用ビルド（プッシュなし）
+      - name: Test build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.build
+          platforms: linux/amd64 # テストは1プラットフォームのみ
+          push: false
+          tags: test:latest
+
+      # 4. 基本的な動作テスト
+      - name: Test container startup
+        run: |
+          echo "🧪 コンテナ起動テスト"
+          # 簡単な起動テスト
+          docker run --rm -d --name test-container \
+            -p 3001:3000 \
+            -e NODE_ENV=production \
+            test:latest
+
+          # ヘルスチェック
+          sleep 10
+          if curl -f http://localhost:3001/api/health; then
+            echo "✅ ヘルスチェック成功"
+          else
+            echo "❌ ヘルスチェック失敗"
+            exit 1
+          fi
+
+          # コンテナ停止
+          docker stop test-container
+          echo "✅ テスト完了"

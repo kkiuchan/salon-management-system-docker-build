@@ -1,0 +1,83 @@
+name: Build and Release Docker Image
+
+# トリガー設定
+on:
+  # タグがpushされた時（v1.0.0, v2.1.0など）
+  push:
+    tags:
+      - "v*"
+
+  # 手動実行も可能
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag (e.g., v1.0.0)"
+        required: true
+        default: "latest"
+
+# 環境変数
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    # GitHub Container Registry への書き込み権限
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # 1. ソースコードをチェックアウト
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Docker Buildx をセットアップ（マルチプラットフォーム対応）
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3. GitHub Container Registry にログイン
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 4. メタデータを抽出（タグ、ラベル）
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # タグからバージョンを抽出
+            type=ref,event=tag
+            # latestタグも追加
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # 5. マルチプラットフォーム対応でビルド＆プッシュ
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.build
+          platforms: linux/amd64,linux/arm64 # Intel & Apple Silicon対応
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 6. リリース情報を表示
+      - name: Display release info
+        run: |
+          echo "🎉 ビルド完了!"
+          echo "📦 イメージ: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "🏷️  タグ: ${{ steps.meta.outputs.tags }}"
+          echo ""
+          echo "📋 顧客への配布方法:"
+          echo "1. docker-compose.yml を更新"
+          echo "2. ./start-docker.sh で起動"
