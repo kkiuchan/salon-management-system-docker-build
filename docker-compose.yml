@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   salon-management:
-    image: ghcr.io/your-username/salon-management-system:latest
+    image: ghcr.io/kkiuchan/salon-management-system-docker-build:latest
     ports:
       - "3000:3000"
     environment:
