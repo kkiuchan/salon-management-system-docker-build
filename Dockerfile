@@ -1,8 +1,13 @@
-# 美容室管理システム - Docker配布用
-# マルチアーキテクチャ対応 (ARM64/AMD64)
+# 美容室管理システム - ローカル開発・テスト用Dockerfile
+# 本番配布用にはDockerfile.buildを使用してください
+
+# 注意: このDockerfileは現在ビルド済みイメージ配布方式に移行中です
+# ローカル開発やテスト用途でのみ使用してください
+# 本番環境では ghcr.io/your-org/salon-management:latest を使用してください
+
 FROM node:22-alpine AS base
 
-# 必要なツールとライブラリをインストール（ネイティブモジュールビルド用ツールを追加）
+# 必要なツールとライブラリをインストール
 RUN apk add --no-cache \
     libc6-compat \
     sqlite \
@@ -18,8 +23,7 @@ WORKDIR /app
 # package.jsonをコピー
 COPY package.json package-lock.json* ./
 
-# 依存関係をDocker内でインストール（ネイティブモジュールも含む）
-# --platform指定でクロスプラットフォーム対応
+# 依存関係をインストール
 RUN npm ci --prefer-offline --no-audit
 
 # ソースコードをコピー
@@ -38,9 +42,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # 非rootユーザーを作成
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
-
-# ボリュームマウントされるディレクトリは作成しない
-# （docker-compose.ymlでマウントされ、start-app.shで権限チェック・作成）
 
 # Next.js standalone出力をコピー
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

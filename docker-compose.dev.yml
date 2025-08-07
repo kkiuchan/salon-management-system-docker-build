@@ -1,0 +1,28 @@
+# 美容室管理システム - 開発・テスト用Docker Compose
+# ローカルビルド版（従来の方式）
+
+version: "3.8"
+
+services:
+  salon-management:
+    build: . # ローカルでビルド
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      - HOST_IP=${HOST_IP:-auto}
+    volumes:
+      # データベースと画像ファイルを永続化
+      - ./data:/app/data
+      # バックアップディレクトリを永続化
+      - ./backups:/app/backups
+      # ログディレクトリを永続化
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # 開発版はビルド時間を考慮

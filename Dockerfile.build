@@ -10,7 +10,9 @@ RUN apk add --no-cache \
     curl \
     python3 \
     make \
-    g++
+    g++ \
+    pkgconfig \
+    sqlite-dev
 
 # アプリケーションのビルド
 FROM base AS builder
@@ -20,7 +22,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # 依存関係をインストール
-RUN npm ci --prefer-offline --no-audit
+RUN npm ci --no-audit --no-cache
 
 # ソースコードをコピー
 COPY . .

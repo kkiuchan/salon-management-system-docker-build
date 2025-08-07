@@ -1,9 +1,9 @@
 #!/bin/sh
 
-echo "美容室管理システムを起動中..."
+echo "🏥 美容室管理システムを起動中..."
 
 # ボリュームマウントされたディレクトリの権限チェック
-echo "ディレクトリ権限をチェック中..."
+echo "📁 ディレクトリ権限をチェック中..."
 
 # 権限チェック関数
 check_and_fix_permissions() {
@@ -132,8 +132,20 @@ else
     echo "✅ 既存のデータベースを使用します"
 fi
 
+# ネットワーク情報を表示
+echo ""
+echo "🌐 ネットワーク情報:"
+if [ -n "$HOST_IP" ] && [ "$HOST_IP" != "auto" ]; then
+    echo "   ホストIP: $HOST_IP (start-docker.sh で検出)"
+    echo "   QRコード用URL: http://$HOST_IP:3000"
+else
+    echo "   ホストIP: 未設定 (アプリ内で自動検出)"
+    echo "   設定方法: http://localhost:3000/settings/network"
+fi
+
 # アプリケーションを起動
-echo "アプリケーションを起動しています..."
+echo ""
+echo "🚀 アプリケーションを起動しています..."
 
 # Next.js standalone modeで起動
 exec node server.js

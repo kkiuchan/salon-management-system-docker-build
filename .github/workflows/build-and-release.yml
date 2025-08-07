@@ -70,6 +70,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # デバッグ用
+          provenance: false
+          sbom: false
 
       # 6. リリース情報を表示
       - name: Display release info
