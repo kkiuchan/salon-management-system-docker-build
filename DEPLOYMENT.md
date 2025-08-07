@@ -110,16 +110,37 @@ sudo ufw allow 3000/tcp  # Ubuntu
 
 ### 一般的な問題
 
-#### 1. 権限エラー
+#### 1. 権限エラー（最も重要）
 
+**症状**: `permission denied`, `EACCES` エラー
+
+**Linux/macOS の解決方法**:
 ```bash
-# Linux/macOS
-sudo chown -R 1001:1001 data logs
-chmod 775 data logs
+# 自動修正スクリプトを実行（推奨）
+./fix-permissions.sh
 
-# Windows
-# Docker Desktop の設定でファイル共有を有効化
+# または手動で修正
+sudo chown -R 1001:1001 data logs
+chmod 755 data logs
+
+# 権限確認
+ls -la data logs
 ```
+
+**Windows の解決方法**:
+```bash
+# Docker Desktop の設定確認
+# Settings → Resources → File sharing
+# プロジェクトディレクトリが共有されていることを確認
+
+# WSL2 使用時
+wsl --set-default-version 2
+# プロジェクトをWSL2内に配置することを推奨
+```
+
+**権限エラーの根本原因**:
+- Docker コンテナ内の `nextjs` ユーザーは UID 1001
+- ホスト側のディレクトリも UID 1001 の所有である必要がある
 
 #### 2. ポート競合
 

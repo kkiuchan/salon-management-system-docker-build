@@ -13,14 +13,31 @@ fi
 
 # ---- ② 必要なディレクトリ作成と権限修正 ----
 echo "📁 必要なディレクトリを作成・権限設定中..."
-mkdir -p data backups logs data/uploads
+mkdir -p data logs data/uploads
 
-# 権限設定（nextjsユーザー用）
-if ! sudo chown -R 1001:1001 data backups logs 2>/dev/null; then
-    echo "⚠️  権限設定に失敗しました。手動で実行してください："
-    echo "  sudo chown -R 1001:1001 data backups logs"
-    exit 1
+# 権限設定（nextjsユーザー用：UID 1001）
+echo "🔧 ディレクトリ権限を設定中..."
+
+# sudoの可用性チェック
+if command -v sudo >/dev/null 2>&1; then
+    if sudo chown -R 1001:1001 data logs 2>/dev/null; then
+        echo "✅ 権限設定完了（sudo使用）"
+    else
+        echo "⚠️  sudo権限設定に失敗。手動設定が必要な場合があります："
+        echo "  sudo chown -R 1001:1001 data logs"
+        echo "続行します..."
+    fi
+else
+    # sudoがない環境（一部のDockerコンテナ環境など）
+    if chown -R 1001:1001 data logs 2>/dev/null; then
+        echo "✅ 権限設定完了"
+    else
+        echo "⚠️  権限設定をスキップ（Docker環境で自動処理されます）"
+    fi
 fi
+
+# 最低限の権限を確保
+chmod 755 data logs 2>/dev/null || true
 
 # ---- ③ ホストIPアドレス自動検出（QRコード用） ----
 echo "🔍 ネットワーク設定を検出中..."

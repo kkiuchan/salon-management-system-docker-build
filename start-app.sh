@@ -52,8 +52,8 @@ fi
 
 # コンテナ内でディレクトリの権限を確実に設定
 echo "🔧 コンテナ内ディレクトリの権限を設定中..."
-chown -R nextjs:nextjs /app/data /app/backups /app/logs 2>/dev/null || true
-chmod -R 775 /app/backups 2>/dev/null || true
+# データディレクトリの権限設定（重要：バックアップは /app/data/backups に保存）
+chown -R nextjs:nextjs /app/data /app/logs 2>/dev/null || true
 chmod -R 664 /app/data/*.db 2>/dev/null || true
 
 # 必要なサブディレクトリを作成

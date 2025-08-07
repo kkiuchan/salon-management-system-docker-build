@@ -7,9 +7,13 @@ echo 🏥 美容室管理システム - 起動中...
 REM 必要なディレクトリ作成
 echo 📁 必要なディレクトリを作成中...
 if not exist "data" mkdir data
-if not exist "backups" mkdir backups
 if not exist "logs" mkdir logs
 if not exist "data\uploads" mkdir data\uploads
+
+REM Windows環境での権限設定
+echo 🔧 Windows環境での権限設定...
+echo ℹ️  Windows環境では、Docker Desktopのファイル共有設定で権限が自動調整されます
+echo ℹ️  問題が発生した場合は、Docker Desktop の Settings → Resources → File sharing を確認してください
 
 REM ホストIPアドレス自動検出（QRコード用）
 echo 🔍 ネットワーク設定を検出中...
