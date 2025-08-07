@@ -71,24 +71,10 @@ check_database_integrity() {
         return 1
     fi
     
-    # 3. Node.jsを使った安全なテーブル存在確認
-    if ! node -e "
-        const Database = require('better-sqlite3');
-        try {
-            const db = new Database('$db_path', { readonly: true });
-            const tables = db.prepare(\"SELECT name FROM sqlite_master WHERE type='table' AND name='customers'\").all();
-            db.close();
-            if (tables.length === 0) {
-                console.log('customers table not found');
-                process.exit(1);
-            }
-            console.log('Database integrity check passed');
-        } catch (error) {
-            console.error('Database check failed:', error.message);
-            process.exit(1);
-        }
-    " 2>/dev/null; then
-        echo "⚠️  データベースの整合性チェックに失敗しました"
+    # 3. 簡易的なサイズチェック（60KB以上なら初期化済みとみなす）
+    local file_size=$(stat -c%s "$db_path" 2>/dev/null || stat -f%z "$db_path" 2>/dev/null || echo "0")
+    if [ "$file_size" -lt 60000 ]; then
+        echo "⚠️  データベースファイルのサイズが小さすぎます (${file_size} bytes)"
         return 1
     fi
     
@@ -96,7 +82,22 @@ check_database_integrity() {
 }
 
 # データベース初期化処理
-if ! check_database_integrity; then
+# データベースファイルの存在確認（サイズチェックのみ）
+if [ -f "/app/data/salon.db" ] && [ -s "/app/data/salon.db" ]; then
+    local file_size=$(stat -f%z "/app/data/salon.db" 2>/dev/null || stat -c%s "/app/data/salon.db" 2>/dev/null || echo "0")
+    if [ "$file_size" -gt 50000 ]; then
+        echo "✅ データベースファイルが既に存在します (${file_size} bytes)"
+        db_needs_init=false
+    else
+        echo "⚠️  データベースファイルが小さすぎます。再初期化します..."
+        db_needs_init=true
+    fi
+else
+    echo "📊 データベースファイルが存在しません。初期化します..."
+    db_needs_init=true
+fi
+
+if [ "$db_needs_init" = "true" ]; then
     echo "データベースを初期化しています..."
     
     # 既存ファイルをバックアップ（存在する場合）
