@@ -32,11 +32,11 @@ if ! check_and_fix_permissions "/app/data"; then
     permission_ok=false
 fi
 
-if ! check_and_fix_permissions "/app/backups"; then
+if ! check_and_fix_permissions "/app/logs"; then
     permission_ok=false
 fi
 
-if ! check_and_fix_permissions "/app/logs"; then
+if ! check_and_fix_permissions "/app/data/backups"; then
     permission_ok=false
 fi
 
@@ -45,10 +45,16 @@ if [ "$permission_ok" = false ]; then
     echo "❌ 権限エラーが検出されました"
     echo "解決方法："
     echo "1. コンテナを停止: docker-compose down"
-    echo "2. 権限修正: sudo chown -R 1001:1001 data backups logs"
+    echo "2. 権限修正: sudo chown -R 1001:1001 data logs app/data/backup"
     echo "3. 再起動: docker-compose up -d"
     exit 1
 fi
+
+# 必要なサブディレクトリを作成
+echo "必要なサブディレクトリを作成中..."
+mkdir -p /app/data/uploads /app/data/backups
+echo "✅ /app/data/uploads ディレクトリを作成しました"
+echo "✅ /app/data/backups ディレクトリを作成しました"
 
 # コンテナ内でディレクトリの権限を確実に設定
 echo "🔧 コンテナ内ディレクトリの権限を設定中..."
@@ -56,10 +62,10 @@ echo "🔧 コンテナ内ディレクトリの権限を設定中..."
 chown -R nextjs:nextjs /app/data /app/logs 2>/dev/null || true
 chmod -R 664 /app/data/*.db 2>/dev/null || true
 
-# 必要なサブディレクトリを作成
-echo "必要なサブディレクトリを作成中..."
-mkdir -p /app/data/uploads
-echo "✅ /app/data/uploads ディレクトリを作成しました"
+# バックアップディレクトリの権限を確実に設定
+echo "🔧 バックアップディレクトリの権限を設定中..."
+chmod 775 /app/data/backups 2>/dev/null || true
+echo "✅ バックアップディレクトリの権限を設定しました"
 
 # 改善されたデータベース初期化判定
 check_database_integrity() {
@@ -108,7 +114,8 @@ if [ "$db_needs_init" = "true" ]; then
     
     # 既存ファイルをバックアップ（存在する場合）
     if [ -f "/app/data/salon.db" ]; then
-        backup_name="/app/backups/salon.db.backup.$(date +%Y%m%d_%H%M%S)"
+        backup_name="/app/data/backups/salon.db.backup.$(date +%Y%m%d_%H%M%S)"
+        mkdir -p /app/data/backups
         cp "/app/data/salon.db" "$backup_name" 2>/dev/null || true
         echo "既存のデータベースを $backup_name にバックアップしました"
         rm "/app/data/salon.db"
@@ -122,7 +129,7 @@ if [ "$db_needs_init" = "true" ]; then
         echo "❌ データベース初期化に失敗しました"
         
         # バックアップからの復旧を試行
-        latest_backup=$(ls -t /app/backups/salon.db.backup.* 2>/dev/null | head -1)
+        latest_backup=$(ls -t /app/data/backups/salon.db.backup.* 2>/dev/null | head -1)
         if [ -n "$latest_backup" ] && [ -f "$latest_backup" ]; then
             echo "最新のバックアップ ($latest_backup) からの復旧を試行します..."
             cp "$latest_backup" "/app/data/salon.db"
