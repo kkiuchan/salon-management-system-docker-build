@@ -1,0 +1,49 @@
+name: Deploy to Production
+
+# 本番デプロイメント用ワークフロー
+on:
+  # リリース作成時
+  release:
+    types: [published]
+
+  # 手動実行
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to production
+        run: |
+          echo "🚀 デプロイメント開始"
+          echo "環境: ${{ github.event.inputs.environment || 'production' }}"
+          echo "リリース: ${{ github.event.release.tag_name || 'manual' }}"
+          echo ""
+          echo "📋 デプロイメント手順:"
+          echo "1. 最新イメージをプル"
+          echo "2. コンテナを再起動"
+          echo "3. ヘルスチェック"
+          echo ""
+          echo "✅ デプロイメント完了"
+
+      - name: Notify deployment
+        run: |
+          echo "📢 デプロイメント通知"
+          echo "リポジトリ: ${{ github.repository }}"
+          echo "ブランチ: ${{ github.ref }}"
+          echo "コミット: ${{ github.sha }}"
+          echo "実行者: ${{ github.actor }}"

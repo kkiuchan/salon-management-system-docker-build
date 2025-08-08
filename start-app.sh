@@ -2,30 +2,46 @@
 
 echo "🏥 美容室管理システムを起動中..."
 
-# ボリュームマウントされたディレクトリの権限チェック
-echo "📁 ディレクトリ権限をチェック中..."
+# ボリュームマウントされたディレクトリの権限チェックと自動修正
+echo "📁 ディレクトリ権限をチェック・修正中..."
 
-# 権限チェック関数
+# 権限チェック・修正関数
 check_and_fix_permissions() {
     local dir="$1"
     
     if [ ! -d "$dir" ]; then
         echo "⚠️  $dir ディレクトリが存在しません"
-        return 1
+        mkdir -p "$dir" 2>/dev/null || true
+        echo "✅ $dir ディレクトリを作成しました"
     fi
     
-    if [ ! -w "$dir" ]; then
+    # 書き込みテスト
+    local test_file="$dir/.permission_test"
+    if touch "$test_file" 2>/dev/null; then
+        rm -f "$test_file" 2>/dev/null
+        echo "✅ $dir の権限は正常です"
+        return 0
+    else
         echo "⚠️  $dir ディレクトリに書き込み権限がありません"
-        echo "ホスト側で以下のコマンドを実行してください:"
-        echo "sudo chown -R 1001:1001 $(basename $dir)"
-        return 1
+        echo "🔧 権限を自動修正中..."
+        
+        # コンテナ内で権限を修正
+        chown -R nextjs:nextjs "$dir" 2>/dev/null || true
+        chmod -R 755 "$dir" 2>/dev/null || true
+        
+        # 再度テスト
+        if touch "$test_file" 2>/dev/null; then
+            rm -f "$test_file" 2>/dev/null
+            echo "✅ $dir の権限修正が完了しました"
+            return 0
+        else
+            echo "❌ $dir の権限修正に失敗しました"
+            return 1
+        fi
     fi
-    
-    echo "✅ $dir の権限は正常です"
-    return 0
 }
 
-# 各ディレクトリの権限チェック
+# 各ディレクトリの権限チェック・修正
 permission_ok=true
 
 if ! check_and_fix_permissions "/app/data"; then
@@ -45,8 +61,11 @@ if [ "$permission_ok" = false ]; then
     echo "❌ 権限エラーが検出されました"
     echo "解決方法："
     echo "1. コンテナを停止: docker-compose down"
-    echo "2. 権限修正: sudo chown -R 1001:1001 data logs app/data/backup"
+    echo "2. ホスト側で権限修正: sudo chown -R $(id -u):$(id -g) data logs"
     echo "3. 再起動: docker-compose up -d"
+    echo ""
+    echo "または、一時的な解決策として："
+    echo "sudo chmod -R 777 data logs"
     exit 1
 fi
 
@@ -58,14 +77,23 @@ echo "✅ /app/data/backups ディレクトリを作成しました"
 
 # コンテナ内でディレクトリの権限を確実に設定
 echo "🔧 コンテナ内ディレクトリの権限を設定中..."
-# データディレクトリの権限設定（重要：バックアップは /app/data/backups に保存）
-chown -R nextjs:nextjs /app/data /app/logs 2>/dev/null || true
-chmod -R 664 /app/data/*.db 2>/dev/null || true
+
+# データベースファイルの権限を設定
+if [ -f "/app/data/salon.db" ]; then
+    chmod 664 /app/data/salon.db 2>/dev/null || true
+    echo "✅ データベースファイルの権限を設定しました"
+fi
 
 # バックアップディレクトリの権限を確実に設定
 echo "🔧 バックアップディレクトリの権限を設定中..."
 chmod 775 /app/data/backups 2>/dev/null || true
 echo "✅ バックアップディレクトリの権限を設定しました"
+
+# アップロードディレクトリの権限を設定
+if [ -d "/app/data/uploads" ]; then
+    chmod 775 /app/data/uploads 2>/dev/null || true
+    echo "✅ アップロードディレクトリの権限を設定しました"
+fi
 
 # 改善されたデータベース初期化判定
 check_database_integrity() {

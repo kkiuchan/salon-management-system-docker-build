@@ -1,225 +1,169 @@
-# 🚀 サロン管理システム デプロイメントガイド
+# 美容室管理システム - デプロイメントガイド
 
-プリビルドされたDockerイメージを使用した簡単デプロイメント手順です。
+## 🚀 クイックスタート
 
-## 📋 システム要件
-
-- **Docker & Docker Compose**
-- **Linux/macOS/Windows**（Docker Desktop）
-- **インターネット接続**（初回イメージダウンロード用）
-
-## 🚀 クイックスタート（推奨）
-
-### 方法1: 設定ファイルのみダウンロード
-
-最新版を使用する場合の推奨方法です：
+### 1. プリビルドイメージを使用（推奨）
 
 ```bash
-# 作業ディレクトリを作成
-mkdir salon-management-system
-cd salon-management-system
+# 1. リポジトリをクローン
+git clone https://github.com/kkiuchan/salon-management-system-docker2-main.git
+cd salon-management-system-docker2-main
 
-# 必要なファイルをダウンロード
-curl -O https://raw.githubusercontent.com/your-username/salon-management-system/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/your-username/salon-management-system/main/start-docker.sh
-curl -O https://raw.githubusercontent.com/your-username/salon-management-system/main/start-docker.bat
-
-# 権限設定（Linux/macOS）
-chmod +x start-docker.sh
-
-# システム起動
+# 2. 起動スクリプトを実行
 ./start-docker.sh  # Linux/macOS
 # または
 start-docker.bat   # Windows
 ```
 
-### 方法2: リポジトリクローン
+### 2. 手動セットアップ
 
 ```bash
-# リポジトリをクローン
-git clone https://github.com/your-username/salon-management-system.git
-cd salon-management-system
+# 1. 必要なディレクトリを作成
+mkdir -p data logs data/uploads
 
-# システム起動
-./start-docker.sh  # Linux/macOS
-# または
-start-docker.bat   # Windows
-```
-
-## 🔧 手動起動（上級者向け）
-
-```bash
-# 必要なディレクトリを作成
-mkdir -p data logs
-
-# 権限設定（Linux/macOS）
+# 2. 権限を設定（Linux/macOS）
 sudo chown -R 1001:1001 data logs
+sudo chmod -R 755 data logs
 
-# Docker Compose でシステム起動
-docker compose pull  # 最新イメージを取得
-docker compose up -d  # バックグラウンドで起動
+# 3. Docker Composeで起動
+docker-compose up -d
 ```
 
-## 🌐 アクセス方法
+## 🔧 GitHub Actions CI/CD
 
-システム起動後、以下のURLでアクセス可能です：
+### 自動ビルドとリリース
 
-- **ローカル**: http://localhost:3000
-- **ネットワーク**: http://[ホストIP]:3000
+このプロジェクトは GitHub Actions を使用して自動的に Docker イメージをビルド・リリースします。
 
-### QRコード表示用のIPアドレス設定
+#### ワークフロー
 
-システムは自動的にホストIPアドレスを検出しますが、手動で設定することも可能です：
+1. **テストワークフロー** (`test.yml`)
+
+   - プルリクエスト時に自動実行
+   - コード品質チェック
+   - Docker ビルドテスト
+   - セキュリティスキャン
+
+2. **ビルド＆リリースワークフロー** (`build-and-release.yml`)
+
+   - タグプッシュ時に自動実行
+   - マルチプラットフォーム対応（Intel & Apple Silicon）
+   - GitHub Container Registry にプッシュ
+   - セキュリティスキャン
+
+3. **デプロイメントワークフロー** (`deploy.yml`)
+   - リリース作成時に自動実行
+   - 本番環境へのデプロイメント
+
+#### リリース手順
 
 ```bash
-# 環境変数でIPアドレスを指定
-HOST_IP=192.168.1.100 docker compose up -d
+# 1. 変更をコミット
+git add .
+git commit -m "feat: 新機能追加"
+
+# 2. タグを作成してプッシュ
+git tag v1.0.0
+git push origin v1.0.0
+
+# 3. GitHub Actionsが自動実行される
+# 4. GitHub Container Registryにイメージがプッシュされる
 ```
 
-## 📁 ディレクトリ構造
+#### 手動実行
 
-```
-salon-management-system/
-├── docker-compose.yml     # Docker設定ファイル
-├── start-docker.sh        # Linux/macOS用起動スクリプト
-├── start-docker.bat       # Windows用起動スクリプト
-├── data/                  # データベース・画像・バックアップ
-│   ├── salon.db          # SQLiteデータベース
-│   ├── uploads/          # 施術画像
-│   └── backups/          # システムバックアップ
-└── logs/                  # システムログ
-```
+GitHub の Actions タブから手動でワークフローを実行できます：
 
-## 🔒 セキュリティ考慮事項
+1. **ビルド＆リリース**: 手動で Docker イメージをビルド
+2. **デプロイメント**: 手動でデプロイメントを実行
 
-### ファイアウォール設定
+## 📦 イメージ配布
+
+### GitHub Container Registry
+
+- **イメージ名**: `ghcr.io/kkiuchan/salon-management-system-docker2-main`
+- **タグ**: `latest`, `v1.0.0`, `v1.1.0` など
+
+### 顧客への配布
+
+顧客は以下の手順で最新版を取得できます：
 
 ```bash
-# ポート3000を開放（必要に応じて）
-sudo ufw allow 3000/tcp  # Ubuntu
+# 最新版を取得
+docker-compose pull
+
+# コンテナを再起動
+docker-compose up -d
 ```
 
-### データバックアップ
+## 🔍 トラブルシューティング
 
-システム内蔵のバックアップ機能を使用：
+### 権限エラー
 
-- **自動バックアップ**: システム設定で定期バックアップを有効化
-- **手動バックアップ**: 管理画面からワンクリックバックアップ
-
-## 🛠️ トラブルシューティング
-
-### 一般的な問題
-
-#### 1. 権限エラー（最も重要）
-
-**症状**: `permission denied`, `EACCES` エラー
-
-**Linux/macOS の解決方法**:
 ```bash
-# 自動修正スクリプトを実行（推奨）
-./fix-permissions.sh
-
-# または手動で修正
+# 権限を修正
 sudo chown -R 1001:1001 data logs
-chmod 755 data logs
+sudo chmod -R 755 data logs
 
-# 権限確認
-ls -la data logs
+# コンテナを再起動
+docker-compose restart
 ```
 
-**Windows の解決方法**:
-```bash
-# Docker Desktop の設定確認
-# Settings → Resources → File sharing
-# プロジェクトディレクトリが共有されていることを確認
-
-# WSL2 使用時
-wsl --set-default-version 2
-# プロジェクトをWSL2内に配置することを推奨
-```
-
-**権限エラーの根本原因**:
-- Docker コンテナ内の `nextjs` ユーザーは UID 1001
-- ホスト側のディレクトリも UID 1001 の所有である必要がある
-
-#### 2. ポート競合
+### データベースエラー
 
 ```bash
-# 使用中のポートを確認
-netstat -an | grep 3000
-
-# 別のポートを使用
-sed -i 's/3000:3000/3001:3000/' docker-compose.yml
+# データベースを初期化
+docker-compose exec salon-management node scripts/safe-init-database.js
 ```
 
-#### 3. イメージダウンロード失敗
+### バックアップエラー
 
-```bash
-# 手動でイメージを取得
-docker pull ghcr.io/your-username/salon-management-system:latest
+バックアップ機能は`/tmp`ディレクトリを使用して権限問題を回避しています。
 
-# プライベートリポジトリの場合はログイン
-docker login ghcr.io
-```
+## 📊 監視とログ
 
 ### ログ確認
 
 ```bash
-# システムログを確認
-docker compose logs -f salon-management
+# リアルタイムログ
+docker-compose logs -f salon-management
 
-# 特定の時間のログ
-docker compose logs --since="2024-01-01T10:00:00" salon-management
+# 特定のログ
+docker-compose logs salon-management | grep "ERROR"
 ```
 
-## 🔄 アップデート手順
+### ヘルスチェック
 
 ```bash
-# システム停止
-docker compose down
-
-# 最新イメージを取得
-docker compose pull
-
-# システム再起動
-docker compose up -d
-
-# 動作確認
-curl -f http://localhost:3000/api/health
+# ヘルスチェック
+curl http://localhost:3000/api/health
 ```
 
-## 📞 サポート
+## 🔐 セキュリティ
 
-問題が発生した場合：
+### セキュリティスキャン
 
-1. **ログを確認**: `docker compose logs salon-management`
-2. **システム状態を確認**: `docker compose ps`
-3. **GitHubのIssues**: https://github.com/your-username/salon-management-system/issues
+- **Trivy**: コンテナイメージの脆弱性スキャン
+- **npm audit**: 依存関係の脆弱性チェック
+- **GitHub Security**: セキュリティ結果の自動アップロード
 
----
+### ベストプラクティス
 
-## 🏗️ 開発者向け情報
+1. 定期的なセキュリティアップデート
+2. 最小権限の原則
+3. 非 root ユーザーでの実行
+4. セキュリティスキャンの自動化
 
-### ローカル開発
+## 📈 パフォーマンス
 
-```bash
-# 開発用イメージをビルド
-docker build -f Dockerfile.build -t salon-test:latest .
+### 最適化
 
-# docker-compose.yml を編集
-# image: ghcr.io/... → image: salon-test:latest
+- **マルチステージビルド**: イメージサイズの最適化
+- **キャッシュ活用**: ビルド時間の短縮
+- **マルチプラットフォーム**: Intel & Apple Silicon 対応
 
-# 開発環境で起動
-docker compose up -d
-```
+### 監視
 
-### GitHub Actions による自動ビルド
-
-タグをプッシュすると自動的に新しいイメージがビルドされます：
-
-```bash
-git tag v1.0.1
-git push origin v1.0.1
-```
-
-ビルド状況は GitHub の Actions タブで確認可能です。
+- **ヘルスチェック**: 自動的な障害検出
+- **ログ監視**: 問題の早期発見
+- **メトリクス**: パフォーマンス監視

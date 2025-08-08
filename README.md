@@ -1,126 +1,121 @@
 # 🏥 美容室管理システム
 
-顧客管理、施術記録、売上分析、QR コードでのモバイルアクセスに対応した美容室向け管理システムです。
+美容室の顧客管理、施術記録、売上管理を一元化する Web アプリケーションです。
 
 ## 🚀 クイックスタート
 
-### 方法1: 設定ファイルのみダウンロード（推奨）
+### 必要なもの
 
-```bash
-# 作業ディレクトリを作成
-mkdir salon-management && cd salon-management
+- **Docker Desktop** (Windows/macOS) または **Docker Engine** (Linux)
+- インターネット接続（初回起動時のみ）
 
-# 必要ファイルをダウンロード
-curl -O https://raw.githubusercontent.com/your-username/salon-management-system/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/your-username/salon-management-system/main/start-docker.sh
+### 起動方法
 
-# 起動（Linux/macOS）
-chmod +x start-docker.sh && ./start-docker.sh
+#### Windows
+
+```cmd
+# 1. ダウンロードしたフォルダを開く
+# 2. start-docker.bat をダブルクリック
 ```
 
-### 方法2: リポジトリクローン
+#### macOS/Linux
 
 ```bash
-git clone https://github.com/your-username/salon-management-system.git
-cd salon-management-system
+# 1. ターミナルでダウンロードしたフォルダに移動
+cd salon-management-system-docker2-main
 
-# Linux/macOS
+# 2. 起動スクリプトを実行
 ./start-docker.sh
-
-# Windows
-start-docker.bat
 ```
 
-### 方法3: 手動起動
-
-```bash
-# プリビルドイメージを使用（高速）
-docker compose pull && docker compose up -d
-```
-
-## 📱 アクセス方法
-
-起動後、以下でアクセスできます：
+### アクセス方法
 
 - **ローカル**: http://localhost:3000
-- **ネットワーク**: http://[あなたの IP]:3000
-- **設定画面**: http://localhost:3000/settings/network
+- **ネットワーク**: 起動時に表示される QR コードをスキャン
 
-## 🛠️ IP アドレス設定
+## 📱 主な機能
 
-QR コード機能を使用するには、ネットワーク IP アドレスの設定が必要です：
+### 👥 顧客管理
 
-### 自動設定（推奨）
+- 顧客情報の登録・編集
+- 顧客検索・フィルタリング
+- 顧客履歴の確認
 
-起動スクリプト（`start-docker.sh`）が自動で IP アドレスを検出します。
+### 💇‍♀️ 施術管理
 
-### 手動設定
+- 施術記録の作成
+- 施術内容の詳細記録
+- 施術写真の管理
 
-```bash
-# 環境変数で指定
-export HOST_IP=192.168.1.100
-docker-compose up -d
+### 📊 売上管理
 
-# または .env ファイルで設定
-echo "HOST_IP=192.168.1.100" > .env
-docker-compose up -d
-```
+- 日別・月別売上レポート
+- スタッフ別売上分析
+- 支払い方法別集計
 
-### アプリ内設定
+### 🔧 マスターデータ管理
 
-起動後、設定画面（http://localhost:3000/settings/network）で IP アドレスを設定できます。
+- スタッフ管理
+- 施術メニュー管理
+- 小売商品管理
+- 支払い方法管理
 
-## ⏹️ 停止方法
+### 💾 バックアップ・復元
 
-```bash
-# Linux/macOS
-./stop-docker.sh
-
-# Windows
-stop-docker.bat
-
-# 手動停止
-docker-compose down
-```
-
-## 📋 主な機能
-
-- 👥 **顧客管理**: 詳細な顧客情報の登録・管理
-- 💇 **施術記録**: 施術内容、使用薬剤、写真の記録
-- 📊 **売上分析**: 日別・スタッフ別・支払い方法別の売上集計
-- 📱 **QR コード**: スマホ・タブレットでの簡単アクセス
-- 💾 **バックアップ**: 自動バックアップ・復元機能
-- 🖨️ **データエクスポート**: CSV 形式でのデータ出力
+- ワンクリックバックアップ
+- データのエクスポート
+- システム復元機能
 
 ## 🔧 トラブルシューティング
 
-### Docker 権限エラー
+### 権限エラーが発生した場合
 
 ```bash
-sudo usermod -aG docker $USER
-# ログアウト＆再ログイン後に再実行
+# Linux/macOS
+sudo chown -R 1001:1001 data logs
+sudo chmod -R 755 data logs
+
+# Windows
+# Docker Desktop の設定でファイル共有を確認
 ```
 
-### 権限エラー
+### ポートが使用中の場合
 
 ```bash
-sudo chown -R 1001:1001 data backups logs
-docker-compose restart
+# 別のポートを使用
+docker-compose down
+# docker-compose.yml の ports を "3001:3000" に変更
+docker-compose up -d
 ```
 
-### IP アドレスが検出されない
+### データベースエラーの場合
 
-アプリ内の設定画面（http://localhost:3000/settings/network）で手動設定してください。
+```bash
+# データベースを初期化
+docker-compose exec salon-management node scripts/safe-init-database.js
+```
 
 ## 📞 サポート
 
-問題が発生した場合は、以下の情報をご提供ください：
+問題が発生した場合：
 
-- OS 情報（Ubuntu, macOS, Windows）
-- エラーメッセージ
-- `docker-compose logs salon-management` の出力
+1. ログを確認: `docker-compose logs salon-management`
+2. システム状態を確認: `docker-compose ps`
+3. サポートにお問い合わせください
+
+## 🔄 アップデート
+
+最新版に更新する場合：
+
+```bash
+# 最新版を取得
+docker-compose pull
+
+# システムを再起動
+docker-compose up -d
+```
 
 ---
 
-**美容室管理システム v2.0**  
-Docker 配布版 - ビルド済みイメージ対応
+**バージョン**: v1.0.0  
+**最終更新**: 2025 年 8 月

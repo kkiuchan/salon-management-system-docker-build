@@ -1,21 +1,20 @@
 services:
   salon-management:
-    # 顧客向けプリビルドイメージ（GitHub Container Registry）
-    image: ghcr.io/kkiuchan/salon-management-system-docker-build:latest
+    # ローカルビルド方式
+    build:
+      context: .
+      dockerfile: Dockerfile.build
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
       - HOST_IP=${HOST_IP:-auto}
-    # 権限問題を解決するためのユーザーマッピング
-    user: "${DOCKER_UID:-1001}:${DOCKER_GID:-1001}"
     volumes:
       # データベースと画像ファイルを永続化
       - ./data:/app/data
       # ログディレクトリを永続化
       - ./logs:/app/logs
-      # 注意: バックアップは /app/data/backups に保存されるため、/app/backups のマウントは不要
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]

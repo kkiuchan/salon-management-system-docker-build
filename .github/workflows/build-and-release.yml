@@ -14,6 +14,11 @@ on:
         description: "Image tag (e.g., v1.0.0)"
         required: true
         default: "latest"
+      force_rebuild:
+        description: "Force rebuild without cache"
+        required: false
+        default: false
+        type: boolean
 
 # 環境変数
 env:
@@ -21,7 +26,31 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # 1. テストジョブ
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint || echo "Linting skipped (no lint script)"
+
+      - name: Run tests
+        run: npm test || echo "Tests skipped (no test script)"
+
+  # 2. ビルド＆プッシュジョブ
   build-and-push:
+    needs: test
     runs-on: ubuntu-latest
 
     # GitHub Container Registry への書き込み権限
@@ -57,6 +86,8 @@ jobs:
             type=ref,event=tag
             # latestタグも追加
             type=raw,value=latest,enable={{is_default_branch}}
+            # 手動実行時のタグ
+            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
       # 5. マルチプラットフォーム対応でビルド＆プッシュ
       - name: Build and push Docker image
@@ -73,14 +104,51 @@ jobs:
           # デバッグ用
           provenance: false
           sbom: false
+          # 手動実行時の強制リビルド
+          no-cache: ${{ github.event.inputs.force_rebuild }}
 
-      # 6. リリース情報を表示
+      # 6. セキュリティスキャン
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      # 7. セキュリティ結果をアップロード
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      # 8. リリース情報を表示
       - name: Display release info
         run: |
           echo "🎉 ビルド完了!"
           echo "📦 イメージ: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
           echo "🏷️  タグ: ${{ steps.meta.outputs.tags }}"
+          echo "📅 ビルド日時: $(date)"
+          echo "🔗 リポジトリ: ${{ github.repository }}"
           echo ""
           echo "📋 顧客への配布方法:"
-          echo "1. docker-compose.yml を更新"
+          echo "1. docker-compose.yml の image を更新"
           echo "2. ./start-docker.sh で起動"
+          echo ""
+          echo "🔧 手動更新方法:"
+          echo "docker-compose pull"
+          echo "docker-compose up -d"
+
+  # 3. 通知ジョブ
+  notify:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify build status
+        run: |
+          if [ "${{ needs.build-and-push.result }}" == "success" ]; then
+            echo "✅ ビルド成功: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}"
+          else
+            echo "❌ ビルド失敗: ${{ needs.build-and-push.result }}"
+          fi

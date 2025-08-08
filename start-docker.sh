@@ -13,31 +13,110 @@ fi
 
 # ---- ② 必要なディレクトリ作成と権限修正 ----
 echo "📁 必要なディレクトリを作成・権限設定中..."
-mkdir -p data logs data/uploads
+mkdir -p data logs data/uploads data/backups
 
-# 権限設定（nextjsユーザー用：UID 1001）
-echo "🔧 ディレクトリ権限を設定中..."
+# 権限問題の自動検出と修正
+echo "🔧 権限問題を自動検出・修正中..."
 
-# sudoの可用性チェック
-if command -v sudo >/dev/null 2>&1; then
-    if sudo chown -R 1001:1001 data logs 2>/dev/null; then
-        echo "✅ 権限設定完了（sudo使用）"
+# 現在のユーザー情報を取得
+CURRENT_USER=$(whoami)
+CURRENT_UID=$(id -u)
+CURRENT_GID=$(id -g)
+
+# Docker Compose用の環境変数を設定
+export DOCKER_UID=$CURRENT_UID
+export DOCKER_GID=$CURRENT_GID
+
+# 権限チェック関数
+check_permissions() {
+    local dir="$1"
+    local test_file="$dir/.permission_test"
+    
+    # 書き込みテスト
+    if touch "$test_file" 2>/dev/null; then
+        rm -f "$test_file" 2>/dev/null
+        return 0  # 成功
     else
-        echo "⚠️  sudo権限設定に失敗。手動設定が必要な場合があります："
-        echo "  sudo chown -R 1001:1001 data logs"
-        echo "続行します..."
+        return 1  # 失敗
     fi
-else
-    # sudoがない環境（一部のDockerコンテナ環境など）
-    if chown -R 1001:1001 data logs 2>/dev/null; then
-        echo "✅ 権限設定完了"
-    else
-        echo "⚠️  権限設定をスキップ（Docker環境で自動処理されます）"
+}
+
+# 権限修正関数
+fix_permissions() {
+    local dir="$1"
+    local method="$2"
+    
+    case $method in
+        "host")
+            # ホストユーザー権限で設定
+            if command -v sudo >/dev/null 2>&1; then
+                sudo chown -R $CURRENT_UID:$CURRENT_GID "$dir" 2>/dev/null
+                sudo chmod -R 755 "$dir" 2>/dev/null
+            else
+                chown -R $CURRENT_UID:$CURRENT_GID "$dir" 2>/dev/null || true
+                chmod -R 755 "$dir" 2>/dev/null || true
+            fi
+            ;;
+        "container")
+            # コンテナユーザー権限で設定
+            if command -v sudo >/dev/null 2>&1; then
+                sudo chown -R 1001:1001 "$dir" 2>/dev/null
+                sudo chmod -R 755 "$dir" 2>/dev/null
+            else
+                echo "⚠️  sudoが必要です。手動で権限を設定してください"
+                return 1
+            fi
+            ;;
+        "permissive")
+            # 777権限で設定（一時的な解決）
+            if command -v sudo >/dev/null 2>&1; then
+                sudo chmod -R 777 "$dir" 2>/dev/null
+            else
+                chmod -R 777 "$dir" 2>/dev/null || true
+            fi
+            ;;
+    esac
+}
+
+# 権限問題の自動検出と修正
+permission_issues=false
+
+for dir in data logs; do
+    if [ -d "$dir" ]; then
+        if ! check_permissions "$dir"; then
+            echo "⚠️  $dir に権限問題を検出"
+            permission_issues=true
+            
+            # 自動修正を試行（ホストユーザー権限優先）
+            echo "🔧 $dir の権限を自動修正中..."
+            if fix_permissions "$dir" "host"; then
+                echo "✅ $dir の権限修正完了"
+            else
+                echo "❌ $dir の権限修正に失敗"
+            fi
+        fi
     fi
+done
+
+# バックアップディレクトリの特別処理
+if [ -d "data/backups" ]; then
+    if ! check_permissions "data/backups"; then
+        echo "⚠️  data/backups に権限問題を検出"
+        permission_issues=true
+        fix_permissions "data/backups" "host"
+    fi
+    # バックアップディレクトリは775権限を設定
+    chmod 775 data/backups 2>/dev/null || true
 fi
 
-# 最低限の権限を確保
-chmod 755 data logs 2>/dev/null || true
+if [ "$permission_issues" = true ]; then
+    echo ""
+    echo "📝 権限問題が検出されました。"
+    echo "コンテナ内で自動修正を試行しますが、問題が続く場合は以下を実行してください："
+    echo "  sudo chown -R $CURRENT_UID:$CURRENT_GID data logs"
+    echo "  sudo chmod -R 755 data logs"
+    echo ""
+fi
 
 # ---- ③ ホストIPアドレス自動検出（QRコード用） ----
 echo "🔍 ネットワーク設定を検出中..."
@@ -76,11 +155,19 @@ fi
 echo "📥 最新版をダウンロード中..."
 
 if command -v docker-compose >/dev/null 2>&1; then
-    docker-compose pull
+    if docker-compose pull; then
+        echo "✅ 最新版のダウンロードが完了しました"
+    else
+        echo "⚠️  最新版のダウンロードに失敗しました。既存のイメージを使用します"
+    fi
     echo "🚀 起動中..."
     docker-compose up -d
 elif docker compose version >/dev/null 2>&1; then
-    docker compose pull
+    if docker compose pull; then
+        echo "✅ 最新版のダウンロードが完了しました"
+    else
+        echo "⚠️  最新版のダウンロードに失敗しました。既存のイメージを使用します"
+    fi
     echo "🚀 起動中..."
     docker compose up -d
 else

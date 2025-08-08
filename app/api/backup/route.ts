@@ -7,10 +7,10 @@ import path from "path";
 
 // バックアップディレクトリの作成
 const createBackupDirectory = (backupName: string) => {
-  // /app/data/backups を使用（権限が既に設定されているため）
-  const backupsRoot = path.join(dataDir, "backups");
+  // 権限問題を回避するため、/tmp ディレクトリを使用
+  const backupsRoot = "/tmp/backups";
 
-  // バックアップルートディレクトリを作成
+  // バックアップルートディレクトリを作成（他のディレクトリと同じ方法）
   if (!fs.existsSync(backupsRoot)) {
     fs.mkdirSync(backupsRoot, { recursive: true });
   }
@@ -20,7 +20,7 @@ const createBackupDirectory = (backupName: string) => {
   const imagesDir = path.join(backupDir, "images");
   const exportsDir = path.join(backupDir, "exports");
 
-  // ディレクトリ作成
+  // ディレクトリ作成（他のディレクトリと同じ方法）
   fs.mkdirSync(backupDir, { recursive: true });
   fs.mkdirSync(databaseDir, { recursive: true });
   fs.mkdirSync(imagesDir, { recursive: true });
@@ -646,9 +646,10 @@ export async function GET(request: NextRequest) {
     createReadme(backupDir);
 
     if (format === "zip") {
-      // ZIPファイル作成
-      const zipPath = path.join(dataDir, "backups", `${backupName}.zip`);
-      const output = fs.createWriteStream(zipPath);
+      // ZIPファイル作成（一時ディレクトリから最終保存先にコピー）
+      const tempZipPath = path.join("/tmp", `${backupName}.zip`);
+      const finalZipPath = path.join(dataDir, "backups", `${backupName}.zip`);
+      const output = fs.createWriteStream(tempZipPath);
       const archive = archiver("zip", { zlib: { level: 9 } });
 
       return new Promise<NextResponse>((resolve, reject) => {
@@ -656,8 +657,19 @@ export async function GET(request: NextRequest) {
           // 一時ディレクトリを削除
           fs.rmSync(backupDir, { recursive: true, force: true });
 
-          const zipBuffer = fs.readFileSync(zipPath);
-          fs.unlinkSync(zipPath); // ZIPファイルを削除
+          // 一時ZIPファイルを最終保存先にコピー
+          try {
+            fs.copyFileSync(tempZipPath, finalZipPath);
+            fs.unlinkSync(tempZipPath); // 一時ZIPファイルを削除
+          } catch (error) {
+            console.warn(
+              "ZIPファイルの最終保存に失敗、一時ファイルを使用:",
+              error
+            );
+          }
+
+          const zipBuffer = fs.readFileSync(finalZipPath);
+          fs.unlinkSync(finalZipPath); // 最終ZIPファイルを削除
 
           resolve(
             new NextResponse(zipBuffer, {
