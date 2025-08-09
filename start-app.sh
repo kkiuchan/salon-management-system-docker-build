@@ -1,43 +1,41 @@
 #!/bin/sh
+set -eu
+
+# 共同編集前提で新規作成物に group 書き込み権限を付与
+umask 002
 
 echo "🏥 美容室管理システムを起動中..."
 
 # ボリュームマウントされたディレクトリの権限チェックと自動修正
 echo "📁 ディレクトリ権限をチェック・修正中..."
 
-# 権限チェック・修正関数
+# 実行ユーザーのUID/GIDを取得
+RUID="$(id -u)"
+RGID="$(id -g)"
+
+# 権限チェック・修正関数（所有権=実行ユーザー、dir=775 / file=664）
 check_and_fix_permissions() {
-    local dir="$1"
-    
+    dir="$1"
+
     if [ ! -d "$dir" ]; then
-        echo "⚠️  $dir ディレクトリが存在しません"
         mkdir -p "$dir" 2>/dev/null || true
         echo "✅ $dir ディレクトリを作成しました"
     fi
-    
+
+    # 所有権とパーミッションを統一
+    chown -R "$RUID:$RGID" "$dir" 2>/dev/null || true
+    find "$dir" -type d -exec chmod 775 {} + 2>/dev/null || true
+    find "$dir" -type f -exec chmod 664 {} + 2>/dev/null || true
+
     # 書き込みテスト
-    local test_file="$dir/.permission_test"
+    test_file="$dir/.permission_test"
     if touch "$test_file" 2>/dev/null; then
-        rm -f "$test_file" 2>/dev/null
-        echo "✅ $dir の権限は正常です"
+        rm -f "$test_file" 2>/dev/null || true
+        echo "✅ $dir 権限OK"
         return 0
     else
-        echo "⚠️  $dir ディレクトリに書き込み権限がありません"
-        echo "🔧 権限を自動修正中..."
-        
-        # コンテナ内で権限を修正
-        chown -R nextjs:nextjs "$dir" 2>/dev/null || true
-        chmod -R 755 "$dir" 2>/dev/null || true
-        
-        # 再度テスト
-        if touch "$test_file" 2>/dev/null; then
-            rm -f "$test_file" 2>/dev/null
-            echo "✅ $dir の権限修正が完了しました"
-            return 0
-        else
-            echo "❌ $dir の権限修正に失敗しました"
-            return 1
-        fi
+        echo "❌ $dir への書き込み不可"
+        return 1
     fi
 }
 
@@ -53,6 +51,11 @@ if ! check_and_fix_permissions "/app/logs"; then
 fi
 
 if ! check_and_fix_permissions "/app/data/backups"; then
+    permission_ok=false
+fi
+
+# アップロードも事前に整備
+if ! check_and_fix_permissions "/app/data/uploads"; then
     permission_ok=false
 fi
 
@@ -93,6 +96,12 @@ echo "✅ バックアップディレクトリの権限を設定しました"
 if [ -d "/app/data/uploads" ]; then
     chmod 775 /app/data/uploads 2>/dev/null || true
     echo "✅ アップロードディレクトリの権限を設定しました"
+fi
+
+# Next.js キャッシュの権限調整（画像最適化が EACCES で失敗するのを防ぐ）
+if [ -d "/app/.next" ]; then
+    mkdir -p /app/.next/cache 2>/dev/null || true
+    chmod -R 775 /app/.next/cache 2>/dev/null || true
 fi
 
 # 改善されたデータベース初期化判定

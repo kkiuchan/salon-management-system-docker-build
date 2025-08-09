@@ -10,9 +10,9 @@ const createBackupDirectory = (backupName: string) => {
   // /app/data/backups を使用（権限が既に設定されているため）
   const backupsRoot = path.join(dataDir, "backups");
 
-  // バックアップルートディレクトリを作成
+  // バックアップルートディレクトリを作成（パーミッションも明示）
   if (!fs.existsSync(backupsRoot)) {
-    fs.mkdirSync(backupsRoot, { recursive: true });
+    fs.mkdirSync(backupsRoot, { recursive: true, mode: 0o775 });
   }
 
   const backupDir = path.join(backupsRoot, backupName);
@@ -20,11 +20,18 @@ const createBackupDirectory = (backupName: string) => {
   const imagesDir = path.join(backupDir, "images");
   const exportsDir = path.join(backupDir, "exports");
 
-  // ディレクトリ作成（他のディレクトリと同じ方法）
-  fs.mkdirSync(backupDir, { recursive: true });
-  fs.mkdirSync(databaseDir, { recursive: true });
-  fs.mkdirSync(imagesDir, { recursive: true });
-  fs.mkdirSync(exportsDir, { recursive: true });
+  // ディレクトリ作成（パーミッション明示）
+  fs.mkdirSync(backupDir, { recursive: true, mode: 0o775 });
+  fs.mkdirSync(databaseDir, { recursive: true, mode: 0o775 });
+  fs.mkdirSync(imagesDir, { recursive: true, mode: 0o775 });
+  fs.mkdirSync(exportsDir, { recursive: true, mode: 0o775 });
+
+  try {
+    fs.chmodSync(backupDir, 0o775);
+    fs.chmodSync(databaseDir, 0o775);
+    fs.chmodSync(imagesDir, 0o775);
+    fs.chmodSync(exportsDir, 0o775);
+  } catch (_) {}
 
   return { backupDir, databaseDir, imagesDir, exportsDir };
 };
@@ -58,11 +65,13 @@ const copyDatabase = (databaseDir: string) => {
     // VACUUM INTO は同期的に完了し、完全なDBを出力する
     db.exec(`VACUUM INTO ${quote(tmpPath)}`);
     fs.renameSync(tmpPath, targetDbPath);
+    try { fs.chmodSync(targetDbPath, 0o664); } catch (_) {}
     return true;
   } catch (e) {
     // フォールバック: 通常コピー（最新WALが取り込まれない可能性あり）
     try {
       fs.copyFileSync(sourceDbPath, targetDbPath);
+      try { fs.chmodSync(targetDbPath, 0o664); } catch (_) {}
       return true;
     } catch (_) {
       return false;
@@ -71,6 +80,15 @@ const copyDatabase = (databaseDir: string) => {
 };
 
 // 画像ファイルのコピー（顧客別・日付別に分類）
+const safeJoinUnder = (base: string, rel: string) => {
+  const clean = rel.replace(/^\/+/, "");
+  const p = path.join(base, path.normalize(clean));
+  const baseResolved = path.resolve(base) + path.sep;
+  if (!path.resolve(p).startsWith(baseResolved)) {
+    throw new Error("Path traversal detected");
+  }
+  return p;
+};
 const copyImages = (imagesDir: string) => {
   let copiedCount = 0;
 
@@ -105,12 +123,8 @@ const copyImages = (imagesDir: string) => {
   // 新しい構造の画像をコピー
   treatmentImages.forEach((image) => {
     // 新しい構造の場合: customers/顧客名/日付/treatment_123_filename.jpg
-    const sourcePath = path.join(
-      process.cwd(),
-      "data",
-      "uploads",
-      ...image.image_url.split("/")
-    );
+    const rel = image.image_url; // customers/... で始まる
+    const sourcePath = safeJoinUnder(uploadsDir, rel);
 
     if (fs.existsSync(sourcePath)) {
       // 顧客名を安全なディレクトリ名に変換
@@ -127,16 +141,21 @@ const copyImages = (imagesDir: string) => {
       const customerDir = path.join(imagesDir, "customers", safeCustomerName);
       const dateDir = path.join(customerDir, dateStr);
 
-      // ディレクトリ作成
-      fs.mkdirSync(customerDir, { recursive: true });
-      fs.mkdirSync(dateDir, { recursive: true });
+      // ディレクトリ作成（パーミッション設定）
+      fs.mkdirSync(customerDir, { recursive: true, mode: 0o775 });
+      fs.mkdirSync(dateDir, { recursive: true, mode: 0o775 });
+      try {
+        fs.chmodSync(customerDir, 0o775);
+        fs.chmodSync(dateDir, 0o775);
+      } catch (_) {}
 
       // ファイル名を取得（既に新しい構造になっている）
-      const fileName = image.image_url.split("/").pop() || "";
+      const fileName = path.basename(image.image_url);
       const targetPath = path.join(dateDir, fileName);
 
-      // ファイルコピー
+      // ファイルコピー（パーミッション設定）
       fs.copyFileSync(sourcePath, targetPath);
+      try { fs.chmodSync(targetPath, 0o664); } catch (_) {}
       copiedCount++;
     }
   });
@@ -172,7 +191,7 @@ const copyImages = (imagesDir: string) => {
   // 古い構造の画像をコピー
   oldTreatmentImages.forEach((image) => {
     const fileName = image.image_url.replace("/api/files/", "");
-    const sourcePath = path.join(uploadsDir, fileName);
+    const sourcePath = safeJoinUnder(uploadsDir, fileName);
 
     if (fs.existsSync(sourcePath)) {
       // 顧客名を安全なディレクトリ名に変換
@@ -189,16 +208,21 @@ const copyImages = (imagesDir: string) => {
       const customerDir = path.join(imagesDir, "customers", safeCustomerName);
       const dateDir = path.join(customerDir, dateStr);
 
-      // ディレクトリ作成
-      fs.mkdirSync(customerDir, { recursive: true });
-      fs.mkdirSync(dateDir, { recursive: true });
+      // ディレクトリ作成（パーミッション設定）
+      fs.mkdirSync(customerDir, { recursive: true, mode: 0o775 });
+      fs.mkdirSync(dateDir, { recursive: true, mode: 0o775 });
+      try {
+        fs.chmodSync(customerDir, 0o775);
+        fs.chmodSync(dateDir, 0o775);
+      } catch (_) {}
 
       // ファイル名に施術IDを含める
       const newFileName = `treatment_${image.treatment_id}_${fileName}`;
       const targetPath = path.join(dateDir, newFileName);
 
-      // ファイルコピー
+      // ファイルコピー（パーミッション設定）
       fs.copyFileSync(sourcePath, targetPath);
+      try { fs.chmodSync(targetPath, 0o664); } catch (_) {}
       copiedCount++;
     }
   });
@@ -674,6 +698,30 @@ export async function GET(request: NextRequest) {
     // README作成
     createReadme(backupDir);
 
+    // バックアップ一式のパーミッションを整える（dir=775 / file=664）
+    const fixPerms = (root: string) => {
+      try {
+        const stack = [root];
+        while (stack.length) {
+          const cur = stack.pop()!;
+          let st: fs.Stats;
+          try { st = fs.statSync(cur); } catch { continue; }
+          if (st.isDirectory()) {
+            try { fs.chmodSync(cur, 0o775); } catch {}
+            let children: string[] = [];
+            try { children = fs.readdirSync(cur); } catch { children = []; }
+            for (const name of children) {
+              stack.push(path.join(cur, name));
+            }
+          } else if (st.isFile()) {
+            try { fs.chmodSync(cur, 0o664); } catch {}
+          }
+        }
+      } catch {}
+    };
+
+    fixPerms(backupDir);
+
     if (format === "zip") {
       // ZIPファイル作成（一時ディレクトリから最終保存先にコピー）
       const tempZipPath = path.join("/tmp", `${backupName}.zip`);
@@ -750,14 +798,18 @@ const getDirectorySize = (dirPath: string): number => {
   let totalSize = 0;
 
   const calculateSize = (currentPath: string) => {
-    const stats = fs.statSync(currentPath);
-    if (stats.isFile()) {
-      totalSize += stats.size;
-    } else if (stats.isDirectory()) {
-      const files = fs.readdirSync(currentPath);
-      files.forEach((file) => {
-        calculateSize(path.join(currentPath, file));
-      });
+    try {
+      const stats = fs.statSync(currentPath);
+      if (stats.isFile()) {
+        totalSize += stats.size;
+      } else if (stats.isDirectory()) {
+        const files = fs.readdirSync(currentPath);
+        files.forEach((file) => {
+          calculateSize(path.join(currentPath, file));
+        });
+      }
+    } catch (_) {
+      // 権限や一時ファイルの読み取りに失敗した場合はスキップ
     }
   };
 
