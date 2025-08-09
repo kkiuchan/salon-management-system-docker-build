@@ -7,10 +7,10 @@ import path from "path";
 
 // バックアップディレクトリの作成
 const createBackupDirectory = (backupName: string) => {
-  // 権限問題を回避するため、/tmp ディレクトリを使用
-  const backupsRoot = "/tmp/backups";
+  // /app/data/backups を使用（権限が既に設定されているため）
+  const backupsRoot = path.join(dataDir, "backups");
 
-  // バックアップルートディレクトリを作成（他のディレクトリと同じ方法）
+  // バックアップルートディレクトリを作成
   if (!fs.existsSync(backupsRoot)) {
     fs.mkdirSync(backupsRoot, { recursive: true });
   }
