@@ -197,8 +197,19 @@ export async function DELETE(
       }
     }
 
-    // 関連するレコードは外部キーのON DELETE CASCADEで削除
-    db.prepare("DELETE FROM customers WHERE id = ?").run(customerId);
+    // トランザクションで確実にDBレコードも削除（古いDBでCASCADEが効かない場合に対応）
+    const removeCustomerWithChildren = db.transaction((cid: number) => {
+      // 画像テーブル → 施術テーブル → 顧客テーブル の順で削除
+      db.prepare(
+        `DELETE FROM treatment_images WHERE treatment_id IN (
+          SELECT id FROM treatments WHERE customer_id = ?
+        )`
+      ).run(cid);
+      db.prepare(`DELETE FROM treatments WHERE customer_id = ?`).run(cid);
+      db.prepare(`DELETE FROM customers WHERE id = ?`).run(cid);
+    });
+
+    removeCustomerWithChildren(customerId);
 
     return NextResponse.json({ message: "顧客が正常に削除されました" });
   } catch (error) {

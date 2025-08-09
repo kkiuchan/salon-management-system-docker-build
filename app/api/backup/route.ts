@@ -29,16 +29,45 @@ const createBackupDirectory = (backupName: string) => {
   return { backupDir, databaseDir, imagesDir, exportsDir };
 };
 
-// データベースのコピー
+// データベースのコピー（WAL対応・一貫性保証）
 const copyDatabase = (databaseDir: string) => {
   const sourceDbPath = path.join(dataDir, "salon.db");
   const targetDbPath = path.join(databaseDir, "salon.db");
 
-  if (fs.existsSync(sourceDbPath)) {
-    fs.copyFileSync(sourceDbPath, targetDbPath);
+  if (!fs.existsSync(sourceDbPath)) return false;
+
+  // VACUUM INTO でスナップショットを取得（WALでも安全）。
+  // 失敗したらフォールバックで通常コピー。
+  const quote = (p: string) => `'${p.replace(/'/g, "''")}'`;
+
+  try {
+    if (!fs.existsSync(databaseDir)) {
+      fs.mkdirSync(databaseDir, { recursive: true });
+    }
+
+    // 事前にWALをチェックポイント（念のため）。
+    try {
+      db.pragma("wal_checkpoint(FULL)");
+    } catch (_) {}
+
+    const tmpPath = targetDbPath + ".tmp";
+    try {
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+    } catch (_) {}
+
+    // VACUUM INTO は同期的に完了し、完全なDBを出力する
+    db.exec(`VACUUM INTO ${quote(tmpPath)}`);
+    fs.renameSync(tmpPath, targetDbPath);
     return true;
+  } catch (e) {
+    // フォールバック: 通常コピー（最新WALが取り込まれない可能性あり）
+    try {
+      fs.copyFileSync(sourceDbPath, targetDbPath);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
-  return false;
 };
 
 // 画像ファイルのコピー（顧客別・日付別に分類）

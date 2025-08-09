@@ -217,11 +217,18 @@ export async function DELETE(
       }
     }
 
-    // レコード削除（画像レコードは外部キーON DELETE CASCADEで削除される）
-    db.prepare("DELETE FROM treatments WHERE id = ? AND customer_id = ?").run(
-      treatmentIdNum,
-      customerId
-    );
+    // レコード削除（CASCADEが効かないDBでも安全に削除）
+    const removeTreatment = db.transaction((tid: number, cid: number) => {
+      db.prepare(`DELETE FROM treatment_images WHERE treatment_id = ?`).run(
+        tid
+      );
+      db.prepare(`DELETE FROM treatments WHERE id = ? AND customer_id = ?`).run(
+        tid,
+        cid
+      );
+    });
+
+    removeTreatment(treatmentIdNum, customerId);
 
     return NextResponse.json({ message: "施術が正常に削除されました" });
   } catch (error) {

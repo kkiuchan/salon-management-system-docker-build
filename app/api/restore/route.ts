@@ -279,6 +279,59 @@ export async function POST(request: NextRequest) {
       console.log("復元処理 - 画像復元が無効化されているため、スキップ");
     }
 
+    // トランザクションでDBレコードをバックアップDBから上書き（顧客と施術データの整合性確保）
+    try {
+      const sqlite3 = require("better-sqlite3");
+      const liveDb = new sqlite3(path.join(process.cwd(), "data", "salon.db"));
+      const backupDb = new sqlite3(backupDbPath, { readonly: true });
+
+      // テーブル毎に入れ替え（既存データは削除→挿入）
+      const copyTable = (table: string) => {
+        const rows = backupDb.prepare(`SELECT * FROM ${table}`).all();
+        const columns = rows.length
+          ? Object.keys(rows[0])
+          : (backupDb
+              .prepare(`PRAGMA table_info(${table})`)
+              .all()
+              .map((r: any) => r.name) as string[]);
+
+        const placeholders = columns.map(() => "?").join(",");
+
+        liveDb.prepare(`DELETE FROM ${table}`).run();
+        const stmt = liveDb.prepare(
+          `INSERT INTO ${table} (${columns.join(",")}) VALUES (${placeholders})`
+        );
+        const tx = liveDb.transaction((rs: any[]) => {
+          for (const r of rs) stmt.run(columns.map((c) => (r as any)[c]));
+        });
+        tx(rows);
+      };
+
+      liveDb.pragma("foreign_keys = OFF");
+      const txAll = liveDb.transaction(() => {
+        copyTable("customers");
+        copyTable("treatments");
+        copyTable("treatment_images");
+        copyTable("staff");
+        copyTable("treatment_menus");
+        copyTable("retail_products");
+        copyTable("referral_sources");
+        copyTable("payment_methods");
+        copyTable("discount_types");
+      });
+      txAll();
+      liveDb.pragma("foreign_keys = ON");
+
+      liveDb.close();
+      backupDb.close();
+      console.log("復元処理 - DBレコードの上書き完了");
+    } catch (e) {
+      console.warn(
+        "復元処理 - DBレコードの上書きに失敗しました（スキップ）:",
+        e
+      );
+    }
+
     console.log("復元処理 - 復元完了");
 
     // SQLite WAL/SHM を削除してクリーンな状態にする
