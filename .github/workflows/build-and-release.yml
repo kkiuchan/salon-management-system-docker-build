@@ -108,12 +108,19 @@ jobs:
           sbom: false
 
       # 6. セキュリティスキャン（ビルド後に実行）
+      - name: Wait for image to be available
+        run: |
+          echo "Waiting for image to be available..."
+          sleep 10
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest || echo "Pull failed, but continuing..."
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           format: "sarif"
           output: "trivy-results.sarif"
+          exit-code: 0
         continue-on-error: true
 
       # 7. セキュリティ結果をアップロード
