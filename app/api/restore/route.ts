@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
     console.log("検証リクエスト - backupPath:", backupPath);
     console.log("検証リクエスト - isAbsolute:", path.isAbsolute(backupPath));
 
-    // backupPathが完全なパスの場合はそのまま使用、相対パスの場合はbackupsディレクトリを結合
+    // backupPathが完全なパスの場合はそのまま使用、相対パスの場合は data/backups を基準に結合
     let backupDir;
     if (path.isAbsolute(backupPath)) {
       backupDir = backupPath;
     } else {
-      backupDir = path.join(process.cwd(), "backups", backupPath);
+      backupDir = path.join(process.cwd(), "data", "backups", backupPath);
     }
 
     console.log("検証リクエスト - backupDir:", backupDir);
@@ -174,12 +174,12 @@ export async function POST(request: NextRequest) {
     console.log("復元リクエスト - backupPath:", backupPath);
     console.log("復元リクエスト - isAbsolute:", path.isAbsolute(backupPath));
 
-    // backupPathが完全なパスの場合はそのまま使用、相対パスの場合はbackupsディレクトリを結合
+    // backupPathが完全なパスの場合はそのまま使用、相対パスの場合は data/backups を基準に結合
     let backupDir;
     if (path.isAbsolute(backupPath)) {
       backupDir = backupPath;
     } else {
-      backupDir = path.join(process.cwd(), "backups", backupPath);
+      backupDir = path.join(process.cwd(), "data", "backups", backupPath);
     }
 
     console.log("復元リクエスト - backupDir:", backupDir);
@@ -281,11 +281,41 @@ export async function POST(request: NextRequest) {
 
     console.log("復元処理 - 復元完了");
 
-    return NextResponse.json({
+    // SQLite WAL/SHM を削除してクリーンな状態にする
+    try {
+      const walPath = path.join(process.cwd(), "data", "salon.db-wal");
+      const shmPath = path.join(process.cwd(), "data", "salon.db-shm");
+      if (fs.existsSync(walPath)) {
+        fs.unlinkSync(walPath);
+        console.log("復元後クリーンアップ - WAL を削除:", walPath);
+      }
+      if (fs.existsSync(shmPath)) {
+        fs.unlinkSync(shmPath);
+        console.log("復元後クリーンアップ - SHM を削除:", shmPath);
+      }
+    } catch (e) {
+      console.warn("復元後クリーンアップ中に警告:", e);
+    }
+
+    const response = NextResponse.json({
       message: "バックアップからの復元が完了しました",
       backupPath,
       restoredAt: new Date().toISOString(),
+      note: "数秒後にアプリが再起動して変更が反映されます",
     });
+
+    // 少し待ってからプロセスを終了し、Docker の restart policy で自動再起動させる
+    setTimeout(() => {
+      try {
+        console.log("復元後の再起動のためプロセスを終了します");
+        // 正常終了コード
+        process.exit(0);
+      } catch (_) {
+        // 何もしない
+      }
+    }, 500);
+
+    return response;
   } catch (error) {
     console.error("復元エラー:", error);
     console.error("復元エラーの詳細:", {

@@ -16,6 +16,14 @@ if (!fs.existsSync(uploadsDir)) {
 
 // データベースインスタンス
 const db = new Database(path.join(dataDir, "salon.db"));
+// 外部キー制約とカスケード削除を有効化
+try {
+  // better-sqlite3 では pragma は同期で実行される
+  db.pragma("foreign_keys = ON");
+} catch (_) {
+  // 失敗しても致命的ではないため、ログだけに留める
+  // console.warn("PRAGMA foreign_keys=ON を適用できませんでした");
+}
 
 // テーブル作成
 db.exec(`

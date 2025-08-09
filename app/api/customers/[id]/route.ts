@@ -1,4 +1,4 @@
-import db from "@/lib/database";
+import db, { deleteImageFile, imageFileExists } from "@/lib/database";
 import { CustomerUpdate } from "@/types";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -172,7 +172,32 @@ export async function DELETE(
       );
     }
 
-    // 関連する施術データも削除される（CASCADE制約により）
+    // まず関連する施術画像の物理ファイルを削除
+    const images = db
+      .prepare(
+        `
+        SELECT ti.image_url
+        FROM treatment_images ti
+        JOIN treatments t ON ti.treatment_id = t.id
+        WHERE t.customer_id = ?
+      `
+      )
+      .all(customerId) as Array<{ image_url: string }>;
+
+    for (const row of images) {
+      if (row.image_url) {
+        try {
+          // 物理ファイルが存在する場合のみ削除
+          if (imageFileExists(row.image_url)) {
+            deleteImageFile(row.image_url);
+          }
+        } catch (_) {
+          // 個別失敗は握りつぶし、DB側の整合性を優先
+        }
+      }
+    }
+
+    // 関連するレコードは外部キーのON DELETE CASCADEで削除
     db.prepare("DELETE FROM customers WHERE id = ?").run(customerId);
 
     return NextResponse.json({ message: "顧客が正常に削除されました" });

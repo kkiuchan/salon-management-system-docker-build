@@ -1,4 +1,4 @@
-import db from "@/lib/database";
+import db, { deleteImageFile, imageFileExists } from "@/lib/database";
 import { TreatmentUpdate } from "@/types";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -198,7 +198,26 @@ export async function DELETE(
       );
     }
 
-    // 関連する画像データも削除される（CASCADE制約により）
+    // 物理ファイルを先に削除
+    const images = db
+      .prepare(
+        `
+        SELECT image_url FROM treatment_images WHERE treatment_id = ?
+      `
+      )
+      .all(treatmentIdNum) as Array<{ image_url: string }>;
+
+    for (const row of images) {
+      if (row.image_url) {
+        try {
+          if (imageFileExists(row.image_url)) {
+            deleteImageFile(row.image_url);
+          }
+        } catch (_) {}
+      }
+    }
+
+    // レコード削除（画像レコードは外部キーON DELETE CASCADEで削除される）
     db.prepare("DELETE FROM treatments WHERE id = ? AND customer_id = ?").run(
       treatmentIdNum,
       customerId
