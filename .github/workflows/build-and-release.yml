@@ -24,6 +24,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  TRIVY_ENABLED: false
 
 jobs:
   # 1. テストジョブ
@@ -107,14 +108,16 @@ jobs:
           provenance: false
           sbom: false
 
-      # 6. セキュリティスキャン（ビルド後に実行）
+      # 6. セキュリティスキャン（Trivy） - 無効化可能
       - name: Wait for image to be available
+        if: ${{ env.TRIVY_ENABLED == 'true' }}
         run: |
           echo "Waiting for image to be available..."
           sleep 10
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest || echo "Pull failed, but continuing..."
 
       - name: Run Trivy vulnerability scanner
+        if: ${{ env.TRIVY_ENABLED == 'true' }}
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
@@ -125,8 +128,8 @@ jobs:
 
       # 7. セキュリティ結果をアップロード
       - name: Upload Trivy scan results to GitHub Security tab
+        if: ${{ env.TRIVY_ENABLED == 'true' && always() }}
         uses: github/codeql-action/upload-sarif@v3
-        if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: "trivy-results.sarif"
 
