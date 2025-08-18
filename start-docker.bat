@@ -4,11 +4,20 @@ chcp 65001 >nul
 
 echo 🏥 美容室管理システム - 起動中...
 
+REM Docker デーモン接続チェック
+docker info >nul 2>&1
+if not %errorlevel%==0 (
+    echo ❌ Docker デーモンに接続できません。Docker Desktop を起動してください。
+    pause
+    exit /b 1
+)
+
 REM 必要なディレクトリ作成
 echo 📁 必要なディレクトリを作成中...
 if not exist "data" mkdir data
 if not exist "logs" mkdir logs
 if not exist "data\uploads" mkdir data\uploads
+if not exist "data\backups" mkdir data\backups
 
 REM Windows環境での権限設定
 echo 🔧 Windows環境での権限設定...

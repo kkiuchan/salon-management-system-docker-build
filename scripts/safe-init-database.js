@@ -56,6 +56,7 @@ try {
       name TEXT NOT NULL,
       gender TEXT,
       phone TEXT,
+      phone2 TEXT,
       emergency_contact TEXT,
       date_of_birth TEXT,
       age INTEGER,
@@ -72,6 +73,7 @@ try {
       referral_source2 TEXT,
       referral_source3 TEXT,
       referral_details TEXT,
+      first_visit_date TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -84,6 +86,8 @@ try {
       customer_id INTEGER NOT NULL,
       treatment_date DATE NOT NULL,
       treatment_time TIME NOT NULL,
+      treatment_end_time TIME,
+      customer_name TEXT,
       stylist_name TEXT NOT NULL,
       treatment_content1 TEXT,
       treatment_content2 TEXT,
@@ -93,6 +97,7 @@ try {
       treatment_content6 TEXT,
       treatment_content7 TEXT,
       treatment_content8 TEXT,
+      treatment_content_other TEXT,
       style_memo TEXT,
       used_chemicals TEXT,
       solution1_time TEXT,
@@ -109,12 +114,15 @@ try {
       retail_product3 TEXT,
       retail_product3_quantity INTEGER DEFAULT 0,
       retail_product3_price INTEGER DEFAULT 0,
+      retail_product_other TEXT,
       notes TEXT,
       conversation_content TEXT,
       treatment_fee INTEGER DEFAULT 0,
+      treatment_adjustment INTEGER DEFAULT 0,
       treatment_discount_amount INTEGER DEFAULT 0,
       treatment_discount_type TEXT,
       retail_fee INTEGER DEFAULT 0,
+      retail_adjustment INTEGER DEFAULT 0,
       retail_discount_amount INTEGER DEFAULT 0,
       retail_discount_type TEXT,
       total_amount INTEGER NOT NULL,
@@ -215,10 +223,10 @@ try {
   // 顧客データ
   const insertCustomer = db.prepare(`
     INSERT INTO customers (
-      furigana, name, gender, phone, emergency_contact, date_of_birth, age, 
+      furigana, name, gender, phone, phone2, emergency_contact, date_of_birth, age, 
       occupation, postal_code, address, visiting_family, notes, 
-      referral_source1, referral_source2, referral_source3, referral_details
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      referral_source1, referral_source2, referral_source3, referral_details, first_visit_date
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   insertCustomer.run(
@@ -226,6 +234,7 @@ try {
     "田中花子",
     "女性",
     "090-1234-5678",
+    "090-1111-2222",
     "090-8765-4321",
     "1990-05-15",
     33,
@@ -237,13 +246,15 @@ try {
     "Instagram",
     "顧客紹介",
     "",
-    "友人の田中さんから紹介"
+    "友人の田中さんから紹介",
+    "2024-01-15"
   );
   insertCustomer.run(
     "サトウタロウ",
     "佐藤太郎",
     "男性",
     "080-9876-5432",
+    "",
     "080-1111-2222",
     "1985-10-20",
     38,
@@ -255,7 +266,8 @@ try {
     "web検索",
     "",
     "",
-    "Googleで検索して来店"
+    "Googleで検索して来店",
+    "2024-01-20"
   );
   insertCustomer.run(
     "",
@@ -264,7 +276,9 @@ try {
     "08011112222",
     "",
     "",
+    "",
     null,
+    "",
     "",
     "",
     "",

@@ -593,8 +593,10 @@ export default function TreatmentDetailPage({
                     onClick={() => {
                       const copyData = {
                         customer_id: customerId,
+                        customer_name: treatment.customer_name || "",
                         treatment_date: treatment.treatment_date,
                         treatment_time: treatment.treatment_time,
+                        treatment_end_time: treatment.treatment_end_time || "",
                         stylist_name: treatment.stylist_name,
                         treatment_content1: treatment.treatment_content1 || "",
                         treatment_content2: treatment.treatment_content2 || "",
@@ -604,6 +606,8 @@ export default function TreatmentDetailPage({
                         treatment_content6: treatment.treatment_content6 || "",
                         treatment_content7: treatment.treatment_content7 || "",
                         treatment_content8: treatment.treatment_content8 || "",
+                        treatment_content_other:
+                          treatment.treatment_content_other || "",
                         style_memo: treatment.style_memo || "",
                         used_chemicals: treatment.used_chemicals || "",
                         solution1_time: treatment.solution1_time || "",
@@ -626,15 +630,20 @@ export default function TreatmentDetailPage({
                           treatment.retail_product2_quantity?.toString() || "1",
                         retail_product3_quantity:
                           treatment.retail_product3_quantity?.toString() || "1",
+                        retail_product_other:
+                          treatment.retail_product_other || "",
                         notes: treatment.notes || "",
                         conversation_content:
                           treatment.conversation_content || "",
                         treatment_fee: treatment.treatment_fee || 0,
+                        treatment_adjustment:
+                          treatment.treatment_adjustment || 0,
                         treatment_discount_amount:
                           treatment.treatment_discount_amount || 0,
                         treatment_discount_type:
                           treatment.treatment_discount_type || "",
                         retail_fee: treatment.retail_fee || 0,
+                        retail_adjustment: treatment.retail_adjustment || 0,
                         retail_discount_amount:
                           treatment.retail_discount_amount || 0,
                         retail_discount_type:
@@ -796,6 +805,11 @@ export default function TreatmentDetailPage({
                                 )}
                               </div>
                             )}
+                            {treatment.treatment_content_other && (
+                              <div className="p-2 bg-green-50 rounded text-sm text-green-800">
+                                その他: {treatment.treatment_content_other}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -873,6 +887,26 @@ export default function TreatmentDetailPage({
                                 </span>
                               </div>
                             )}
+                            {treatment.treatment_content_other && (
+                              <div className="flex justify-between">
+                                <span className="font-medium text-gray-600">
+                                  その他施術:
+                                </span>
+                                <span className="text-gray-900">
+                                  {treatment.treatment_content_other}
+                                </span>
+                              </div>
+                            )}
+                            {treatment.retail_product_other && (
+                              <div className="flex justify-between">
+                                <span className="font-medium text-gray-600">
+                                  その他商品:
+                                </span>
+                                <span className="text-gray-900">
+                                  {treatment.retail_product_other}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -932,6 +966,13 @@ export default function TreatmentDetailPage({
                                   )}
                               </div>
                             )}
+                            {treatment.retail_product_other && (
+                              <div className="p-2 bg-orange-50 rounded text-sm text-orange-800 flex justify-between items-center">
+                                <span>
+                                  その他: {treatment.retail_product_other}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -989,9 +1030,22 @@ export default function TreatmentDetailPage({
                         {treatment.treatment_time && (
                           <div className="flex items-center gap-2 bg-white p-2 rounded-md">
                             <Clock className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm font-medium">時間:</span>
+                            <span className="text-sm font-medium">
+                              開始時間:
+                            </span>
                             <span className="text-sm">
                               {treatment.treatment_time}
+                            </span>
+                          </div>
+                        )}
+                        {treatment.treatment_end_time && (
+                          <div className="flex items-center gap-2 bg-white p-2 rounded-md">
+                            <Clock className="h-4 w-4 text-blue-600" />
+                            <span className="text-sm font-medium">
+                              終了時間:
+                            </span>
+                            <span className="text-sm">
+                              {treatment.treatment_end_time}
                             </span>
                           </div>
                         )}
@@ -1050,6 +1104,16 @@ export default function TreatmentDetailPage({
                                 {formatMasterDataValue(
                                   treatment.treatment_content3
                                 )}
+                              </span>
+                            </div>
+                          )}
+                          {treatment.treatment_content_other && (
+                            <div className="bg-white p-3 rounded-md border-l-4 border-green-200">
+                              <span className="text-sm font-medium text-green-700">
+                                その他施術:
+                              </span>
+                              <span className="text-sm ml-2">
+                                {treatment.treatment_content_other}
                               </span>
                             </div>
                           )}
@@ -1200,6 +1264,15 @@ export default function TreatmentDetailPage({
                                   {treatment.retail_product3_price.toLocaleString()}
                                 </span>
                               )}
+                            </div>
+                          )}
+                          {treatment.retail_product_other && (
+                            <div className="bg-white p-3 rounded-md flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">
+                                  その他: {treatment.retail_product_other}
+                                </span>
+                              </div>
                             </div>
                           )}
                         </div>

@@ -45,6 +45,7 @@ db.exec(`
     name TEXT NOT NULL,
     gender TEXT,
     phone TEXT,
+    phone2 TEXT, -- 連絡先2を追加
     emergency_contact TEXT,
     date_of_birth TEXT,
     age INTEGER,
@@ -61,6 +62,7 @@ db.exec(`
     referral_source2 TEXT,
     referral_source3 TEXT,
     referral_details TEXT,
+    first_visit_date TEXT, -- 初回来店日を追加
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -71,6 +73,8 @@ db.exec(`
     customer_id INTEGER NOT NULL,
     treatment_date TEXT NOT NULL,
     treatment_time TEXT,
+    treatment_end_time TEXT, -- 施術終了時間を追加
+    customer_name TEXT, -- お名前を追加
     stylist_name TEXT NOT NULL,
     treatment_content1 TEXT,
     treatment_content2 TEXT,
@@ -80,6 +84,7 @@ db.exec(`
     treatment_content6 TEXT,
     treatment_content7 TEXT,
     treatment_content8 TEXT,
+    treatment_content_other TEXT, -- その他施術内容を追加
     style_memo TEXT,
     used_chemicals TEXT,
     solution1_time TEXT,
@@ -96,12 +101,15 @@ db.exec(`
     retail_product3 TEXT,
     retail_product3_quantity INTEGER,
     retail_product3_price INTEGER,
+    retail_product_other TEXT, -- その他店販商品を追加
     notes TEXT,
     conversation_content TEXT,
     treatment_fee INTEGER,
+    treatment_adjustment INTEGER, -- 施術料金調整を追加
     treatment_discount_amount INTEGER,
     treatment_discount_type TEXT,
     retail_fee INTEGER,
+    retail_adjustment INTEGER, -- 店販料金調整を追加
     retail_discount_amount INTEGER,
     retail_discount_type TEXT,
     total_amount INTEGER,
@@ -335,6 +343,7 @@ const customerData = [
     name: "田中花子",
     gender: "女性",
     phone: "090-1234-5678",
+    phone2: "090-1111-2222", // 連絡先2を追加
     emergency_contact: "090-8765-4321",
     date_of_birth: "1990-05-15",
     age: 33,
@@ -347,12 +356,14 @@ const customerData = [
     referral_source2: "顧客紹介",
     referral_source3: "",
     referral_details: "友人の田中さんから紹介",
+    first_visit_date: "2024-01-15", // 初回来店日を追加
   },
   {
     furigana: "サトウタロウ",
     name: "佐藤太郎",
     gender: "男性",
     phone: "080-9876-5432",
+    phone2: "", // 連絡先2を追加
     emergency_contact: "080-1111-2222",
     date_of_birth: "1985-10-20",
     age: 38,
@@ -365,6 +376,7 @@ const customerData = [
     referral_source2: "",
     referral_source3: "",
     referral_details: "Googleで検索して来店",
+    first_visit_date: "2024-01-20", // 初回来店日を追加
   },
 ];
 
@@ -372,16 +384,17 @@ customerData.forEach((customer) => {
   db.prepare(
     `
     INSERT INTO customers (
-      furigana, name, gender, phone, emergency_contact,
+      furigana, name, gender, phone, phone2, emergency_contact,
       date_of_birth, age, occupation, postal_code, address, visiting_family,
-      notes, referral_source1, referral_source2, referral_source3, referral_details
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      notes, referral_source1, referral_source2, referral_source3, referral_details, first_visit_date
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `
   ).run(
     customer.furigana,
     customer.name,
     customer.gender,
     customer.phone,
+    customer.phone2,
     customer.emergency_contact,
     customer.date_of_birth,
     customer.age,
@@ -393,7 +406,8 @@ customerData.forEach((customer) => {
     customer.referral_source1,
     customer.referral_source2,
     customer.referral_source3,
-    customer.referral_details
+    customer.referral_details,
+    customer.first_visit_date
   );
 });
 
@@ -403,9 +417,12 @@ const treatmentData = [
     customer_id: 1,
     treatment_date: "2024-01-15",
     treatment_time: "14:00",
+    treatment_end_time: "15:30", // 施術終了時間を追加
+    customer_name: "田中花子", // お名前を追加
     stylist_name: "下井優太",
     treatment_content1: "カット",
     treatment_content2: "Mカラー",
+    treatment_content_other: "特別ケア", // その他施術内容を追加
     style_memo: "ショートボブ、明るいブラウン",
     used_chemicals: "L'OREAL プロフェッショナル",
     solution1_time: "20分",
@@ -413,36 +430,45 @@ const treatmentData = [
     notes: "初回カラー、満足度高い",
     conversation_content: "仕事の話、趣味の話",
     treatment_fee: 9000, // カット(3000) + Mカラー(6000)
+    treatment_adjustment: 500, // 施術料金調整を追加
     treatment_discount_amount: 900, // 10%割引 (9000 * 0.1)
     treatment_discount_type: "クーポン割引",
     retail_product1: "シャンプー",
     retail_product1_quantity: 2,
     retail_product1_price: 2000,
+    retail_product_other: "特別商品", // その他店販商品を追加
     retail_fee: 4000, // シャンプー(2000) × 2
+    retail_adjustment: 200, // 店販料金調整を追加
     retail_discount_amount: 0,
     retail_discount_type: "",
-    total_amount: 12100, // (9000 - 900) + 4000
+    total_amount: 12800, // (9000 + 500 - 900) + (4000 + 200)
     payment_method: "現金",
   },
   {
     customer_id: 2,
     treatment_date: "2024-01-20",
     treatment_time: "10:00",
+    treatment_end_time: "11:00", // 施術終了時間を追加
+    customer_name: "佐藤太郎", // お名前を追加
     stylist_name: "田中花子",
     treatment_content1: "カット",
     treatment_content2: "トリートメント",
+    treatment_content_other: "", // その他施術内容を追加
     style_memo: "ビジネスカット、清潔感重視",
     used_chemicals: "資生堂 プロフェッショナル",
     solution1_time: "15分",
     notes: "ビジネス向け、短時間で完了",
     conversation_content: "仕事の話",
     treatment_fee: 5000, // カット(3000) + トリートメント(2000)
+    treatment_adjustment: 0, // 施術料金調整を追加
     treatment_discount_amount: 0,
     treatment_discount_type: "",
     retail_product1: "コンディショナー",
     retail_product1_quantity: 1,
     retail_product1_price: 1800,
+    retail_product_other: "", // その他店販商品を追加
     retail_fee: 1800, // コンディショナー(1800) × 1
+    retail_adjustment: 0, // 店販料金調整を追加
     retail_discount_amount: 0,
     retail_discount_type: "",
     total_amount: 6800, // 5000 + 1800
@@ -452,10 +478,13 @@ const treatmentData = [
     customer_id: 1,
     treatment_date: "2024-02-01",
     treatment_time: "16:00",
+    treatment_end_time: "18:30", // 施術終了時間を追加
+    customer_name: "田中花子", // お名前を追加
     stylist_name: "佐藤太郎",
     treatment_content1: "パーマ",
     treatment_content2: "Sカラー",
     treatment_content3: "ヘッドスパ",
+    treatment_content_other: "特別トリートメント", // その他施術内容を追加
     style_memo: "ロングヘア、ナチュラルウェーブ",
     used_chemicals: "Wella プロフェッショナル",
     solution1_time: "25分",
@@ -464,6 +493,7 @@ const treatmentData = [
     notes: "結婚式前の特別ケア、大変満足",
     conversation_content: "結婚式の準備について",
     treatment_fee: 13500, // パーマ(8000) + Sカラー(4000) + ヘッドスパ(1500)
+    treatment_adjustment: 1000, // 施術料金調整を追加
     treatment_discount_amount: 2700, // 20%割引 (13500 * 0.2)
     treatment_discount_type: "紹介割引",
     retail_product1: "シャンプー",
@@ -472,31 +502,39 @@ const treatmentData = [
     retail_product2: "コンディショナー",
     retail_product2_quantity: 1,
     retail_product2_price: 1800,
+    retail_product_other: "特別商品セット", // その他店販商品を追加
     retail_fee: 3800, // シャンプー(2000) + コンディショナー(1800)
+    retail_adjustment: 300, // 店販料金調整を追加
     retail_discount_amount: 0,
     retail_discount_type: "",
-    total_amount: 14600, // (13500 - 2700) + 3800
+    total_amount: 15900, // (13500 + 1000 - 2700) + (3800 + 300)
     payment_method: "クレジットカード",
   },
   {
     customer_id: 2,
     treatment_date: "2024-02-10",
     treatment_time: "13:00",
+    treatment_end_time: "14:00", // 施術終了時間を追加
+    customer_name: "佐藤太郎", // お名前を追加
     stylist_name: "下井優太",
     treatment_content1: "カット",
     treatment_content2: "前髪カット",
+    treatment_content_other: "", // その他施術内容を追加
     style_memo: "ミディアムボブ、前髪調整",
     used_chemicals: "資生堂 プロフェッショナル",
     solution1_time: "10分",
     notes: "定期的なカット、前髪の調整",
     conversation_content: "最近の流行について",
     treatment_fee: 4000, // カット(3000) + 前髪カット(1000)
+    treatment_adjustment: 0, // 施術料金調整を追加
     treatment_discount_amount: 500, // 固定割引
     treatment_discount_type: "固定割引",
     retail_product1: "スタイリング剤",
     retail_product1_quantity: 1,
     retail_product1_price: 1500,
+    retail_product_other: "", // その他店販商品を追加
     retail_fee: 1500, // スタイリング剤(1500) × 1
+    retail_adjustment: 0, // 店販料金調整を追加
     retail_discount_amount: 0,
     retail_discount_type: "",
     total_amount: 5000, // (4000 - 500) + 1500
@@ -508,22 +546,24 @@ treatmentData.forEach((treatment) => {
   db.prepare(
     `
     INSERT INTO treatments (
-      customer_id, treatment_date, treatment_time, stylist_name,
-      treatment_content1, treatment_content2, treatment_content3, treatment_content4, treatment_content5, treatment_content6, treatment_content7, treatment_content8,
+      customer_id, treatment_date, treatment_time, treatment_end_time, customer_name, stylist_name,
+      treatment_content1, treatment_content2, treatment_content3, treatment_content4, treatment_content5, treatment_content6, treatment_content7, treatment_content8, treatment_content_other,
       style_memo, used_chemicals, solution1_time, solution2_time, color_time1, color_time2, other_details,
       notes, conversation_content,
-      treatment_fee, treatment_discount_amount, treatment_discount_type,
-      retail_fee, retail_discount_amount, retail_discount_type, total_amount, payment_method,
+      treatment_fee, treatment_adjustment, treatment_discount_amount, treatment_discount_type,
+      retail_fee, retail_adjustment, retail_discount_amount, retail_discount_type, total_amount, payment_method,
       retail_product1, retail_product1_quantity, retail_product1_price,
       retail_product2, retail_product2_quantity, retail_product2_price,
-      retail_product3, retail_product3_quantity, retail_product3_price,
+      retail_product3, retail_product3_quantity, retail_product3_price, retail_product_other,
       next_appointment_date, next_appointment_time
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `
   ).run(
     treatment.customer_id,
     treatment.treatment_date,
     treatment.treatment_time,
+    treatment.treatment_end_time || "",
+    treatment.customer_name || "",
     treatment.stylist_name,
     treatment.treatment_content1 || "",
     treatment.treatment_content2 || "",
@@ -533,6 +573,7 @@ treatmentData.forEach((treatment) => {
     treatment.treatment_content6 || "",
     treatment.treatment_content7 || "",
     treatment.treatment_content8 || "",
+    treatment.treatment_content_other || "",
     treatment.style_memo || "",
     treatment.used_chemicals || "",
     treatment.solution1_time || "",
@@ -543,9 +584,11 @@ treatmentData.forEach((treatment) => {
     treatment.notes || "",
     treatment.conversation_content || "",
     treatment.treatment_fee || 0,
+    treatment.treatment_adjustment || 0,
     treatment.treatment_discount_amount || 0,
     treatment.treatment_discount_type || "",
     treatment.retail_fee || 0,
+    treatment.retail_adjustment || 0,
     treatment.retail_discount_amount || 0,
     treatment.retail_discount_type || "",
     treatment.total_amount || 0,
@@ -559,6 +602,7 @@ treatmentData.forEach((treatment) => {
     treatment.retail_product3 || "",
     treatment.retail_product3_quantity || 0,
     treatment.retail_product3_price || 0,
+    treatment.retail_product_other || "",
     treatment.next_appointment_date || "",
     treatment.next_appointment_time || ""
   );

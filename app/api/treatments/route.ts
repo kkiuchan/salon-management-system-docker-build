@@ -81,6 +81,8 @@ export async function POST(request: NextRequest) {
       body.customer_id,
       body.treatment_date,
       body.treatment_time !== undefined ? body.treatment_time : null,
+      body.treatment_end_time !== undefined ? body.treatment_end_time : null,
+      body.customer_name !== undefined ? body.customer_name : null,
       body.stylist_name,
       body.treatment_content1 !== undefined ? body.treatment_content1 : null,
       body.treatment_content2 !== undefined ? body.treatment_content2 : null,
@@ -90,6 +92,9 @@ export async function POST(request: NextRequest) {
       body.treatment_content6 !== undefined ? body.treatment_content6 : null,
       body.treatment_content7 !== undefined ? body.treatment_content7 : null,
       body.treatment_content8 !== undefined ? body.treatment_content8 : null,
+      body.treatment_content_other !== undefined
+        ? body.treatment_content_other
+        : null,
       body.style_memo !== undefined ? body.style_memo : null,
       body.used_chemicals !== undefined ? body.used_chemicals : null,
       body.solution1_time !== undefined ? body.solution1_time : null,
@@ -118,11 +123,17 @@ export async function POST(request: NextRequest) {
       body.retail_product3_price !== undefined
         ? body.retail_product3_price
         : null,
+      body.retail_product_other !== undefined
+        ? body.retail_product_other
+        : null,
       body.notes !== undefined ? body.notes : null,
       body.conversation_content !== undefined
         ? body.conversation_content
         : null,
       body.treatment_fee !== undefined ? body.treatment_fee : null,
+      body.treatment_adjustment !== undefined
+        ? body.treatment_adjustment
+        : null,
       body.treatment_discount_amount !== undefined
         ? body.treatment_discount_amount
         : null,
@@ -130,6 +141,7 @@ export async function POST(request: NextRequest) {
         ? body.treatment_discount_type
         : null,
       body.retail_fee !== undefined ? body.retail_fee : null,
+      body.retail_adjustment !== undefined ? body.retail_adjustment : null,
       body.retail_discount_amount !== undefined
         ? body.retail_discount_amount
         : null,
@@ -154,17 +166,17 @@ export async function POST(request: NextRequest) {
         .prepare(
           `
         INSERT INTO treatments (
-          customer_id, treatment_date, treatment_time, stylist_name,
+          customer_id, treatment_date, treatment_time, treatment_end_time, customer_name, stylist_name,
           treatment_content1, treatment_content2, treatment_content3, treatment_content4,
-          treatment_content5, treatment_content6, treatment_content7, treatment_content8,
+          treatment_content5, treatment_content6, treatment_content7, treatment_content8, treatment_content_other,
           style_memo, used_chemicals, solution1_time, solution2_time, color_time1, color_time2,
           other_details, retail_product1, retail_product1_quantity, retail_product1_price,
           retail_product2, retail_product2_quantity, retail_product2_price,
-          retail_product3, retail_product3_quantity, retail_product3_price,
-          notes, conversation_content, treatment_fee, treatment_discount_amount,
-          treatment_discount_type, retail_fee, retail_discount_amount, retail_discount_type,
+          retail_product3, retail_product3_quantity, retail_product3_price, retail_product_other,
+          notes, conversation_content, treatment_fee, treatment_adjustment, treatment_discount_amount,
+          treatment_discount_type, retail_fee, retail_adjustment, retail_discount_amount, retail_discount_type,
           total_amount, payment_method, next_appointment_date, next_appointment_time
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
         )
         .run(...params);

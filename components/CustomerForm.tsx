@@ -55,6 +55,7 @@ export default function CustomerForm({
     name: otherInitialData.name ?? "",
     gender: otherInitialData.gender ?? "",
     phone: otherInitialData.phone ?? "",
+    phone2: otherInitialData.phone2 ?? "", // 連絡先2を追加
     emergency_contact: otherInitialData.emergency_contact ?? "",
     date_of_birth: formatDateForInput(otherInitialData.date_of_birth),
     age: initialAge ? initialAge.toString() : "",
@@ -71,6 +72,7 @@ export default function CustomerForm({
     referral_source2: otherInitialData.referral_source2 ?? "",
     referral_source3: otherInitialData.referral_source3 ?? "",
     referral_details: otherInitialData.referral_details ?? "",
+    first_visit_date: formatDateForInput(otherInitialData.first_visit_date), // 初回来店日を追加
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -122,14 +124,23 @@ export default function CustomerForm({
       return;
     }
 
-    // その他のフィールドは従来通り処理
-    let nameValue = value;
-    if (value && value.includes("-")) {
-      nameValue = value.split("-").slice(0, -1).join("-");
+    // 初回来店日の場合は、そのままの値を使用
+    if (field === "first_visit_date") {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+      return;
     }
 
-    console.log(`updateField: ${field} = ${value} -> ${nameValue}`);
-    setFormData((prev) => ({ ...prev, [field]: nameValue }));
+    // 特定のフィールドでのみハイフンを制限（来店きっかけのマスタデータ選択フィールドのみ）
+    if (field.startsWith("referral_source") && value.includes("-")) {
+      return; // 来店きっかけのマスタデータ選択フィールドではハイフンを禁止
+    }
+
+    // その他のフィールドはそのままの値を使用
+    console.log(`updateField: ${field} = ${value}`);
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -247,6 +258,19 @@ export default function CustomerForm({
                 />
               </div>
               <div>
+                <Label htmlFor="phone2" className="text-green-700 mb-3 block">
+                  連絡先2
+                </Label>
+                <Input
+                  id="phone2"
+                  value={formData.phone2}
+                  onChange={(e) => updateField("phone2", e.target.value)}
+                  className="bg-white"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <Label
                   htmlFor="emergency_contact"
                   className="text-green-700 mb-3 block"
@@ -262,8 +286,6 @@ export default function CustomerForm({
                   className="bg-white"
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="email" className="text-green-700 mb-3 block">
                   メールアドレス
@@ -276,20 +298,17 @@ export default function CustomerForm({
                   className="bg-white"
                 />
               </div>
-              <div>
-                <Label
-                  htmlFor="occupation"
-                  className="text-green-700 mb-3 block"
-                >
-                  ご職業
-                </Label>
-                <Input
-                  id="occupation"
-                  value={formData.occupation}
-                  onChange={(e) => updateField("occupation", e.target.value)}
-                  className="bg-white"
-                />
-              </div>
+            </div>
+            <div>
+              <Label htmlFor="occupation" className="text-green-700 mb-3 block">
+                ご職業
+              </Label>
+              <Input
+                id="occupation"
+                value={formData.occupation}
+                onChange={(e) => updateField("occupation", e.target.value)}
+                className="bg-white"
+              />
             </div>
           </div>
         </div>
@@ -347,11 +366,18 @@ export default function CustomerForm({
                 className="bg-white"
               />
             </div>
+          </div>
+        </div>
+
+        {/* 医療情報セクション */}
+        <div className="bg-red-50 p-8 rounded-lg border border-red-200">
+          <h3 className="text-lg font-semibold text-red-900 mb-6 flex items-center gap-2">
+            <Heart className="h-5 w-5" />
+            医療情報
+          </h3>
+          <div className="space-y-6">
             <div>
-              <Label
-                htmlFor="blood_type"
-                className="text-purple-700 mb-3 block"
-              >
+              <Label htmlFor="blood_type" className="text-red-700 mb-3 block">
                 血液型
               </Label>
               <Select
@@ -370,16 +396,6 @@ export default function CustomerForm({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </div>
-
-        {/* 医療情報セクション */}
-        <div className="bg-red-50 p-8 rounded-lg border border-red-200">
-          <h3 className="text-lg font-semibold text-red-900 mb-6 flex items-center gap-2">
-            <Heart className="h-5 w-5" />
-            医療情報
-          </h3>
-          <div className="space-y-6">
             <div>
               <Label htmlFor="allergies" className="text-red-700 mb-3 block">
                 アレルギー
@@ -418,6 +434,23 @@ export default function CustomerForm({
             来店きっかけ
           </h3>
           <div className="space-y-6">
+            <div>
+              <Label
+                htmlFor="first_visit_date"
+                className="text-yellow-700 mb-3 block"
+              >
+                初回来店日
+              </Label>
+              <Input
+                id="first_visit_date"
+                type="date"
+                value={formData.first_visit_date}
+                onChange={(e) =>
+                  updateField("first_visit_date", e.target.value)
+                }
+                className="bg-white"
+              />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label

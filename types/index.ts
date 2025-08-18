@@ -5,6 +5,7 @@ export interface Customer {
   name: string;
   gender?: string;
   phone?: string;
+  phone2?: string; // 連絡先2を追加
   emergency_contact?: string;
   date_of_birth?: string;
   age?: number;
@@ -21,6 +22,7 @@ export interface Customer {
   referral_source2?: string;
   referral_source3?: string;
   referral_details?: string;
+  first_visit_date?: string; // 初回来店日を追加
   created_at: string;
   updated_at: string;
 }
@@ -30,6 +32,7 @@ export interface CustomerInsert {
   name: string;
   gender?: string;
   phone?: string;
+  phone2?: string; // 連絡先2を追加
   emergency_contact?: string;
   date_of_birth?: string;
   age?: number;
@@ -46,6 +49,7 @@ export interface CustomerInsert {
   referral_source2?: string;
   referral_source3?: string;
   referral_details?: string;
+  first_visit_date?: string; // 初回来店日を追加
 }
 
 export interface CustomerUpdate extends Partial<CustomerInsert> {
@@ -62,6 +66,8 @@ export interface Treatment {
   customer_id: number;
   treatment_date: string;
   treatment_time?: string;
+  treatment_end_time?: string; // 施術終了時間を追加
+  customer_name?: string; // お名前を追加
   stylist_name: string;
   treatment_content1?: string;
   treatment_content2?: string;
@@ -71,6 +77,7 @@ export interface Treatment {
   treatment_content6?: string;
   treatment_content7?: string;
   treatment_content8?: string;
+  treatment_content_other?: string; // その他施術内容を追加
   style_memo?: string;
   used_chemicals?: string;
   solution1_time?: string;
@@ -81,6 +88,7 @@ export interface Treatment {
   retail_product1?: string;
   retail_product2?: string;
   retail_product3?: string;
+  retail_product_other?: string; // その他店販商品を追加
   retail_product1_price?: number;
   retail_product2_price?: number;
   retail_product3_price?: number;
@@ -90,9 +98,11 @@ export interface Treatment {
   notes?: string;
   conversation_content?: string;
   treatment_fee?: number;
+  treatment_adjustment?: number; // 施術料金調整を追加
   treatment_discount_amount?: number;
   treatment_discount_type?: string;
   retail_fee?: number;
+  retail_adjustment?: number; // 店販料金調整を追加
   retail_discount_amount?: number;
   retail_discount_type?: string;
   total_amount?: number;
@@ -108,6 +118,8 @@ export interface TreatmentInsert {
   customer_id: number;
   treatment_date: string;
   treatment_time?: string;
+  treatment_end_time?: string; // 施術終了時間を追加
+  customer_name?: string; // お名前を追加
   stylist_name: string;
   treatment_content1?: string;
   treatment_content2?: string;
@@ -117,6 +129,7 @@ export interface TreatmentInsert {
   treatment_content6?: string;
   treatment_content7?: string;
   treatment_content8?: string;
+  treatment_content_other?: string; // その他施術内容を追加
   style_memo?: string;
   used_chemicals?: string;
   solution1_time?: string;
@@ -127,6 +140,7 @@ export interface TreatmentInsert {
   retail_product1?: string;
   retail_product2?: string;
   retail_product3?: string;
+  retail_product_other?: string; // その他店販商品を追加
   retail_product1_price?: number;
   retail_product2_price?: number;
   retail_product3_price?: number;
@@ -136,9 +150,11 @@ export interface TreatmentInsert {
   notes?: string;
   conversation_content?: string;
   treatment_fee?: number;
+  treatment_adjustment?: number; // 施術料金調整を追加
   treatment_discount_amount?: number;
   treatment_discount_type?: string;
   retail_fee?: number;
+  retail_adjustment?: number; // 店販料金調整を追加
   retail_discount_amount?: number;
   retail_discount_type?: string;
   total_amount?: number;

@@ -65,13 +65,17 @@ const copyDatabase = (databaseDir: string) => {
     // VACUUM INTO は同期的に完了し、完全なDBを出力する
     db.exec(`VACUUM INTO ${quote(tmpPath)}`);
     fs.renameSync(tmpPath, targetDbPath);
-    try { fs.chmodSync(targetDbPath, 0o664); } catch (_) {}
+    try {
+      fs.chmodSync(targetDbPath, 0o664);
+    } catch (_) {}
     return true;
   } catch (e) {
     // フォールバック: 通常コピー（最新WALが取り込まれない可能性あり）
     try {
       fs.copyFileSync(sourceDbPath, targetDbPath);
-      try { fs.chmodSync(targetDbPath, 0o664); } catch (_) {}
+      try {
+        fs.chmodSync(targetDbPath, 0o664);
+      } catch (_) {}
       return true;
     } catch (_) {
       return false;
@@ -155,7 +159,9 @@ const copyImages = (imagesDir: string) => {
 
       // ファイルコピー（パーミッション設定）
       fs.copyFileSync(sourcePath, targetPath);
-      try { fs.chmodSync(targetPath, 0o664); } catch (_) {}
+      try {
+        fs.chmodSync(targetPath, 0o664);
+      } catch (_) {}
       copiedCount++;
     }
   });
@@ -222,7 +228,9 @@ const copyImages = (imagesDir: string) => {
 
       // ファイルコピー（パーミッション設定）
       fs.copyFileSync(sourcePath, targetPath);
-      try { fs.chmodSync(targetPath, 0o664); } catch (_) {}
+      try {
+        fs.chmodSync(targetPath, 0o664);
+      } catch (_) {}
       copiedCount++;
     }
   });
@@ -705,16 +713,28 @@ export async function GET(request: NextRequest) {
         while (stack.length) {
           const cur = stack.pop()!;
           let st: fs.Stats;
-          try { st = fs.statSync(cur); } catch { continue; }
+          try {
+            st = fs.statSync(cur);
+          } catch {
+            continue;
+          }
           if (st.isDirectory()) {
-            try { fs.chmodSync(cur, 0o775); } catch {}
+            try {
+              fs.chmodSync(cur, 0o775);
+            } catch {}
             let children: string[] = [];
-            try { children = fs.readdirSync(cur); } catch { children = []; }
+            try {
+              children = fs.readdirSync(cur);
+            } catch {
+              children = [];
+            }
             for (const name of children) {
               stack.push(path.join(cur, name));
             }
           } else if (st.isFile()) {
-            try { fs.chmodSync(cur, 0o664); } catch {}
+            try {
+              fs.chmodSync(cur, 0o664);
+            } catch {}
           }
         }
       } catch {}

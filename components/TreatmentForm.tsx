@@ -58,6 +58,8 @@ export default function TreatmentForm({
   const [formData, setFormData] = useState({
     treatment_date: initialData.treatment_date || getTodayDate(),
     treatment_time: initialData.treatment_time || getCurrentHourTime(),
+    treatment_end_time: initialData.treatment_end_time || "", // 施術終了時間を追加
+    customer_name: initialData.customer_name || "", // お名前を追加
     stylist_name: initialData.stylist_name || "",
     treatment_content1: initialData.treatment_content1 || "",
     treatment_content2: initialData.treatment_content2 || "",
@@ -67,6 +69,7 @@ export default function TreatmentForm({
     treatment_content6: initialData.treatment_content6 || "",
     treatment_content7: initialData.treatment_content7 || "",
     treatment_content8: initialData.treatment_content8 || "",
+    treatment_content_other: initialData.treatment_content_other || "", // その他施術内容を追加
     style_memo: initialData.style_memo || "",
     used_chemicals: initialData.used_chemicals || "",
     solution1_time: initialData.solution1_time || "",
@@ -77,6 +80,7 @@ export default function TreatmentForm({
     retail_product1: initialData.retail_product1 || "",
     retail_product2: initialData.retail_product2 || "",
     retail_product3: initialData.retail_product3 || "",
+    retail_product_other: initialData.retail_product_other || "", // その他店販商品を追加
     retail_product1_price: String(
       (initialData as TreatmentWithImages).retail_product1_price || 0
     ),
@@ -103,11 +107,17 @@ export default function TreatmentForm({
     treatment_fee: String(
       (initialData as TreatmentWithImages).treatment_fee || 0
     ),
+    treatment_adjustment: String(
+      (initialData as TreatmentWithImages).treatment_adjustment || 0
+    ), // 施術料金調整を追加
     treatment_discount_amount: String(
       (initialData as TreatmentWithImages).treatment_discount_amount || 0
     ),
     treatment_discount_type: initialData.treatment_discount_type || "",
     retail_fee: String((initialData as TreatmentWithImages).retail_fee || 0),
+    retail_adjustment: String(
+      (initialData as TreatmentWithImages).retail_adjustment || 0
+    ), // 店販料金調整を追加
     retail_discount_amount: String(
       (initialData as TreatmentWithImages).retail_discount_amount || 0
     ),
@@ -128,6 +138,29 @@ export default function TreatmentForm({
 
   // 外部から渡された画像がある場合はそれを使用
   const displayImages = externalSelectedImages || selectedImages;
+
+  // 顧客情報を取得して初期値を設定する
+  useEffect(() => {
+    const fetchCustomerData = async () => {
+      // 既にお名前が設定されている場合は何もしない
+      if (formData.customer_name) return;
+
+      try {
+        const response = await fetch(`/api/customers/${customerId}`);
+        if (response.ok) {
+          const customerData = await response.json();
+          setFormData((prev) => ({
+            ...prev,
+            customer_name: customerData.name || "",
+          }));
+        }
+      } catch (error) {
+        console.error("顧客情報取得エラー:", error);
+      }
+    };
+
+    fetchCustomerData();
+  }, [customerId, formData.customer_name]);
 
   // アクティブなスタイリストが1人しかいない場合に自動選択する
   useEffect(() => {
@@ -189,6 +222,7 @@ export default function TreatmentForm({
         setFormData((prevFormData) => {
           const newFormData = {
             ...prevFormData,
+            customer_name: String(parsedData.customer_name || ""),
             stylist_name: String(parsedData.stylist_name || ""),
             treatment_content1: String(parsedData.treatment_content1 || ""),
             treatment_content2: String(parsedData.treatment_content2 || ""),
@@ -553,13 +587,20 @@ export default function TreatmentForm({
 
   const calculateTotal = () => {
     const treatmentFee = parseFloat(formData.treatment_fee) || 0;
+    const treatmentAdjustment = parseFloat(formData.treatment_adjustment) || 0;
     const treatmentDiscount =
       parseFloat(formData.treatment_discount_amount) || 0;
     const retailTotal = calculateRetailTotal();
+    const retailAdjustment = parseFloat(formData.retail_adjustment) || 0;
     const retailDiscount = parseFloat(formData.retail_discount_amount) || 0;
 
     const total =
-      treatmentFee - treatmentDiscount + retailTotal - retailDiscount;
+      treatmentFee +
+      treatmentAdjustment -
+      treatmentDiscount +
+      retailTotal +
+      retailAdjustment -
+      retailDiscount;
 
     // NaNや無限大の値を防ぐ
     if (isNaN(total) || !isFinite(total)) {
@@ -576,6 +617,8 @@ export default function TreatmentForm({
       customer_id: customerId,
       treatment_date: formData.treatment_date,
       treatment_time: formData.treatment_time,
+      treatment_end_time: formData.treatment_end_time,
+      customer_name: formData.customer_name,
       stylist_name: formData.stylist_name,
       treatment_content1: formData.treatment_content1,
       treatment_content2: formData.treatment_content2,
@@ -585,6 +628,7 @@ export default function TreatmentForm({
       treatment_content6: formData.treatment_content6,
       treatment_content7: formData.treatment_content7,
       treatment_content8: formData.treatment_content8,
+      treatment_content_other: formData.treatment_content_other,
       style_memo: formData.style_memo,
       used_chemicals: formData.used_chemicals,
       solution1_time: formData.solution1_time,
@@ -595,6 +639,7 @@ export default function TreatmentForm({
       retail_product1: formData.retail_product1,
       retail_product2: formData.retail_product2,
       retail_product3: formData.retail_product3,
+      retail_product_other: formData.retail_product_other,
       retail_product1_price: formData.retail_product1_price
         ? parseFloat(formData.retail_product1_price)
         : undefined,
@@ -618,12 +663,18 @@ export default function TreatmentForm({
       treatment_fee: formData.treatment_fee
         ? parseFloat(formData.treatment_fee)
         : undefined,
+      treatment_adjustment: formData.treatment_adjustment
+        ? parseFloat(formData.treatment_adjustment)
+        : undefined,
       treatment_discount_amount: formData.treatment_discount_amount
         ? parseFloat(formData.treatment_discount_amount)
         : undefined,
       treatment_discount_type: formData.treatment_discount_type,
       retail_fee: formData.retail_fee
         ? parseFloat(formData.retail_fee)
+        : undefined,
+      retail_adjustment: formData.retail_adjustment
+        ? parseFloat(formData.retail_adjustment)
         : undefined,
       retail_discount_amount: formData.retail_discount_amount
         ? parseFloat(formData.retail_discount_amount)
@@ -1311,6 +1362,20 @@ export default function TreatmentForm({
           <div className="space-y-3">
             <div>
               <Label
+                htmlFor="customer_name"
+                className="text-blue-700 text-xs font-medium"
+              >
+                お名前
+              </Label>
+              <Input
+                id="customer_name"
+                value={formData.customer_name}
+                onChange={(e) => updateField("customer_name", e.target.value)}
+                className="bg-white text-sm h-8"
+              />
+            </div>
+            <div>
+              <Label
                 htmlFor="treatment_date"
                 className="text-blue-700 text-xs font-medium"
               >
@@ -1325,17 +1390,41 @@ export default function TreatmentForm({
                 className="bg-white text-sm h-8"
               />
             </div>
-            <div>
-              <Label htmlFor="treatment_time" className="text-blue-700 text-xs">
-                施術時間
-              </Label>
-              <Input
-                id="treatment_time"
-                type="time"
-                value={formData.treatment_time}
-                onChange={(e) => updateField("treatment_time", e.target.value)}
-                className="bg-white text-sm h-8"
-              />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label
+                  htmlFor="treatment_time"
+                  className="text-blue-700 text-xs"
+                >
+                  施術開始時間
+                </Label>
+                <Input
+                  id="treatment_time"
+                  type="time"
+                  value={formData.treatment_time}
+                  onChange={(e) =>
+                    updateField("treatment_time", e.target.value)
+                  }
+                  className="bg-white text-sm h-8"
+                />
+              </div>
+              <div>
+                <Label
+                  htmlFor="treatment_end_time"
+                  className="text-blue-700 text-xs"
+                >
+                  施術終了時間
+                </Label>
+                <Input
+                  id="treatment_end_time"
+                  type="time"
+                  value={formData.treatment_end_time}
+                  onChange={(e) =>
+                    updateField("treatment_end_time", e.target.value)
+                  }
+                  className="bg-white text-sm h-8"
+                />
+              </div>
             </div>
             <div>
               <Label
@@ -1595,6 +1684,25 @@ export default function TreatmentForm({
                   />
                 </div>
               ))}
+            </div>
+
+            {/* その他施術内容 */}
+            <div>
+              <Label
+                htmlFor="treatment_content_other"
+                className="text-green-700 text-xs"
+              >
+                その他施術内容
+              </Label>
+              <Input
+                id="treatment_content_other"
+                value={formData.treatment_content_other}
+                onChange={(e) =>
+                  updateField("treatment_content_other", e.target.value)
+                }
+                className="bg-white text-sm h-8"
+                placeholder="その他の施術内容を入力"
+              />
             </div>
 
             {/* 施術画像セクション */}
@@ -1987,6 +2095,25 @@ export default function TreatmentForm({
                 </div>
               </div>
             ))}
+
+            {/* その他店販商品 */}
+            <div>
+              <Label
+                htmlFor="retail_product_other"
+                className="text-indigo-700 text-xs"
+              >
+                その他店販商品
+              </Label>
+              <Input
+                id="retail_product_other"
+                value={formData.retail_product_other}
+                onChange={(e) =>
+                  updateField("retail_product_other", e.target.value)
+                }
+                className="bg-white text-sm h-8"
+                placeholder="その他の店販商品を入力"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -2106,6 +2233,20 @@ export default function TreatmentForm({
                     {parseFloat(formData.treatment_fee || "0").toLocaleString()}
                   </span>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-orange-700">
+                    料金調整:
+                  </span>
+                  <Input
+                    type="number"
+                    value={formData.treatment_adjustment}
+                    onChange={(e) =>
+                      updateField("treatment_adjustment", e.target.value)
+                    }
+                    className="bg-white text-xs h-6 w-20 text-right"
+                    placeholder="0"
+                  />
+                </div>
                 {parseFloat(formData.treatment_discount_amount || "0") > 0 && (
                   <div className="flex justify-between items-center text-red-600">
                     <span className="text-xs font-medium">施術割引:</span>
@@ -2124,7 +2265,8 @@ export default function TreatmentForm({
                   <span className="text-sm font-semibold text-orange-600">
                     ¥
                     {(
-                      parseFloat(formData.treatment_fee || "0") -
+                      parseFloat(formData.treatment_fee || "0") +
+                      parseFloat(formData.treatment_adjustment || "0") -
                       parseFloat(formData.treatment_discount_amount || "0")
                     ).toLocaleString()}
                   </span>
@@ -2212,6 +2354,20 @@ export default function TreatmentForm({
                     ¥{calculateRetailTotal().toLocaleString()}
                   </span>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-orange-700">
+                    料金調整:
+                  </span>
+                  <Input
+                    type="number"
+                    value={formData.retail_adjustment}
+                    onChange={(e) =>
+                      updateField("retail_adjustment", e.target.value)
+                    }
+                    className="bg-white text-xs h-6 w-20 text-right"
+                    placeholder="0"
+                  />
+                </div>
                 {parseFloat(formData.retail_discount_amount || "0") > 0 && (
                   <div className="flex justify-between items-center text-red-600">
                     <span className="text-xs font-medium">店販割引:</span>
@@ -2230,7 +2386,8 @@ export default function TreatmentForm({
                   <span className="text-sm font-semibold text-orange-600">
                     ¥
                     {(
-                      calculateRetailTotal() -
+                      calculateRetailTotal() +
+                      parseFloat(formData.retail_adjustment || "0") -
                       parseFloat(formData.retail_discount_amount || "0")
                     ).toLocaleString()}
                   </span>

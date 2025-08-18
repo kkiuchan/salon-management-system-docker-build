@@ -84,6 +84,7 @@ export async function PUT(
       "name",
       "gender",
       "phone",
+      "phone2",
       "emergency_contact",
       "date_of_birth",
       "age",
@@ -100,6 +101,7 @@ export async function PUT(
       "referral_source2",
       "referral_source3",
       "referral_details",
+      "first_visit_date",
     ];
 
     // 更新するフィールドを動的に構築

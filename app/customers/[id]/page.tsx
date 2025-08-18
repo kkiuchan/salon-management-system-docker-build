@@ -504,6 +504,12 @@ export default function CustomerDetailPage({
                       <span>{customer.phone}</span>
                     </div>
                   )}
+                  {customer.phone2 && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span>連絡先2: {customer.phone2}</span>
+                    </div>
+                  )}
                   {customer.emergency_contact && (
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-gray-500" />
@@ -562,6 +568,14 @@ export default function CustomerDetailPage({
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-gray-500" />
                       <span>既往歴: {customer.medical_history}</span>
+                    </div>
+                  )}
+                  {customer.first_visit_date && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span>
+                        初回来店日: {formatDate(customer.first_visit_date)}
+                      </span>
                     </div>
                   )}
                   {customer.referral_source1 && (

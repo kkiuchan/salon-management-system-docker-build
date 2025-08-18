@@ -122,11 +122,11 @@ export async function POST(request: NextRequest) {
       .prepare(
         `
       INSERT INTO customers (
-        furigana, name, gender, phone, emergency_contact, date_of_birth, age,
+        furigana, name, gender, phone, phone2, emergency_contact, date_of_birth, age,
         occupation, postal_code, address, visiting_family, email, blood_type,
         allergies, medical_history, notes, referral_source1, referral_source2,
-        referral_source3, referral_details
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        referral_source3, referral_details, first_visit_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
       )
       .run(
@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
         body.name,
         body.gender || null,
         body.phone || null,
+        body.phone2 || null,
         body.emergency_contact || null,
         body.date_of_birth || null,
         body.age || null,
@@ -149,7 +150,8 @@ export async function POST(request: NextRequest) {
         body.referral_source1 || null,
         body.referral_source2 || null,
         body.referral_source3 || null,
-        body.referral_details || null
+        body.referral_details || null,
+        body.first_visit_date || null
       );
 
     const newCustomer = db
