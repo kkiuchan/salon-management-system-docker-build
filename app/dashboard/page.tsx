@@ -1829,14 +1829,6 @@ export default function DashboardPage() {
 
                   <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
                     <Button
-                      onClick={() => handleExportData()}
-                      disabled={exporting}
-                      className="flex-1"
-                    >
-                      <Database className="h-4 w-4 mr-2" />
-                      {exporting ? "エクスポート中..." : "全データエクスポート"}
-                    </Button>
-                    <Button
                       onClick={() =>
                         handleExportData(selectedCustomerId || undefined)
                       }

@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 interface SalesDataRow {
   treatment_date: string;
+  treatment_time: string | null;
+  treatment_end_time: string | null;
   customer_name: string | null;
+  treatment_customer_name: string | null;
   stylist_name: string | null;
   treatment_fee: number | null;
   retail_fee: number | null;
@@ -12,6 +15,12 @@ interface SalesDataRow {
   treatment_content1: string | null;
   treatment_content2: string | null;
   treatment_content3: string | null;
+  treatment_content4: string | null;
+  treatment_content5: string | null;
+  treatment_content6: string | null;
+  treatment_content7: string | null;
+  treatment_content8: string | null;
+  treatment_content_other: string | null;
   retail_product1: string | null;
   retail_product1_quantity: number | null;
   retail_product1_price: number | null;
@@ -21,6 +30,9 @@ interface SalesDataRow {
   retail_product3: string | null;
   retail_product3_quantity: number | null;
   retail_product3_price: number | null;
+  retail_product_other: string | null;
+  treatment_adjustment: number | null;
+  retail_adjustment: number | null;
   treatment_discount_amount: number | null;
   retail_discount_amount: number | null;
   treatment_discount_type: string | null;
@@ -171,8 +183,8 @@ export async function POST(request: NextRequest) {
       )
       .all(startDate, endDate) as StaffRanking[];
 
-    // 3. 施術メニューランキング
-    const treatmentRanking = db
+    // 3. 施術メニューランキング（全8項目を取得）
+    const treatmentRanking1 = db
       .prepare(
         `
       SELECT 
@@ -189,10 +201,195 @@ export async function POST(request: NextRequest) {
         AND treatment_content1 != ''
       GROUP BY treatment_content1
       ORDER BY count DESC
-      LIMIT 10
     `
       )
       .all(startDate, endDate) as TreatmentRanking[];
+
+    const treatmentRanking2 = db
+      .prepare(
+        `
+      SELECT 
+        treatment_content2 as treatment_name,
+        COUNT(*) as count,
+        COALESCE(SUM(treatment_fee), 0) as total_sales,
+        CASE 
+          WHEN COUNT(*) > 0 THEN COALESCE(SUM(treatment_fee), 0) / COUNT(*)
+          ELSE 0 
+        END as average_price
+      FROM treatments 
+      WHERE treatment_date >= ? AND treatment_date <= ? 
+        AND treatment_content2 IS NOT NULL 
+        AND treatment_content2 != ''
+      GROUP BY treatment_content2
+      ORDER BY count DESC
+    `
+      )
+      .all(startDate, endDate) as TreatmentRanking[];
+
+    const treatmentRanking3 = db
+      .prepare(
+        `
+      SELECT 
+        treatment_content3 as treatment_name,
+        COUNT(*) as count,
+        COALESCE(SUM(treatment_fee), 0) as total_sales,
+        CASE 
+          WHEN COUNT(*) > 0 THEN COALESCE(SUM(treatment_fee), 0) / COUNT(*)
+          ELSE 0 
+        END as average_price
+      FROM treatments 
+      WHERE treatment_date >= ? AND treatment_date <= ? 
+        AND treatment_content3 IS NOT NULL 
+        AND treatment_content3 != ''
+      GROUP BY treatment_content3
+      ORDER BY count DESC
+    `
+      )
+      .all(startDate, endDate) as TreatmentRanking[];
+
+    const treatmentRanking4 = db
+      .prepare(
+        `
+      SELECT 
+        treatment_content4 as treatment_name,
+        COUNT(*) as count,
+        COALESCE(SUM(treatment_fee), 0) as total_sales,
+        CASE 
+          WHEN COUNT(*) > 0 THEN COALESCE(SUM(treatment_fee), 0) / COUNT(*)
+          ELSE 0 
+        END as average_price
+      FROM treatments 
+      WHERE treatment_date >= ? AND treatment_date <= ? 
+        AND treatment_content4 IS NOT NULL 
+        AND treatment_content4 != ''
+      GROUP BY treatment_content4
+      ORDER BY count DESC
+    `
+      )
+      .all(startDate, endDate) as TreatmentRanking[];
+
+    const treatmentRanking5 = db
+      .prepare(
+        `
+      SELECT 
+        treatment_content5 as treatment_name,
+        COUNT(*) as count,
+        COALESCE(SUM(treatment_fee), 0) as total_sales,
+        CASE 
+          WHEN COUNT(*) > 0 THEN COALESCE(SUM(treatment_fee), 0) / COUNT(*)
+          ELSE 0 
+        END as average_price
+      FROM treatments 
+      WHERE treatment_date >= ? AND treatment_date <= ? 
+        AND treatment_content5 IS NOT NULL 
+        AND treatment_content5 != ''
+      GROUP BY treatment_content5
+      ORDER BY count DESC
+    `
+      )
+      .all(startDate, endDate) as TreatmentRanking[];
+
+    const treatmentRanking6 = db
+      .prepare(
+        `
+      SELECT 
+        treatment_content6 as treatment_name,
+        COUNT(*) as count,
+        COALESCE(SUM(treatment_fee), 0) as total_sales,
+        CASE 
+          WHEN COUNT(*) > 0 THEN COALESCE(SUM(treatment_fee), 0) / COUNT(*)
+          ELSE 0 
+        END as average_price
+      FROM treatments 
+      WHERE treatment_date >= ? AND treatment_date <= ? 
+        AND treatment_content6 IS NOT NULL 
+        AND treatment_content6 != ''
+      GROUP BY treatment_content6
+      ORDER BY count DESC
+    `
+      )
+      .all(startDate, endDate) as TreatmentRanking[];
+
+    const treatmentRanking7 = db
+      .prepare(
+        `
+      SELECT 
+        treatment_content7 as treatment_name,
+        COUNT(*) as count,
+        COALESCE(SUM(treatment_fee), 0) as total_sales,
+        CASE 
+          WHEN COUNT(*) > 0 THEN COALESCE(SUM(treatment_fee), 0) / COUNT(*)
+          ELSE 0 
+        END as average_price
+      FROM treatments 
+      WHERE treatment_date >= ? AND treatment_date <= ? 
+        AND treatment_content7 IS NOT NULL 
+        AND treatment_content7 != ''
+      GROUP BY treatment_content7
+      ORDER BY count DESC
+    `
+      )
+      .all(startDate, endDate) as TreatmentRanking[];
+
+    const treatmentRanking8 = db
+      .prepare(
+        `
+      SELECT 
+        treatment_content8 as treatment_name,
+        COUNT(*) as count,
+        COALESCE(SUM(treatment_fee), 0) as total_sales,
+        CASE 
+          WHEN COUNT(*) > 0 THEN COALESCE(SUM(treatment_fee), 0) / COUNT(*)
+          ELSE 0 
+        END as average_price
+      FROM treatments 
+      WHERE treatment_date >= ? AND treatment_date <= ? 
+        AND treatment_content8 IS NOT NULL 
+        AND treatment_content8 != ''
+      GROUP BY treatment_content8
+      ORDER BY count DESC
+    `
+      )
+      .all(startDate, endDate) as TreatmentRanking[];
+
+    // すべての施術メニューデータを結合
+    const allTreatmentRankings = [
+      ...treatmentRanking1,
+      ...treatmentRanking2,
+      ...treatmentRanking3,
+      ...treatmentRanking4,
+      ...treatmentRanking5,
+      ...treatmentRanking6,
+      ...treatmentRanking7,
+      ...treatmentRanking8,
+    ];
+
+    // メニュー名を整形（ID部分を除去）して集計
+    const formattedTreatmentRankings = allTreatmentRankings.map(
+      (treatment) => ({
+        ...treatment,
+        treatment_name: treatment.treatment_name.includes("-")
+          ? treatment.treatment_name.split("-").slice(0, -1).join("-")
+          : treatment.treatment_name,
+      })
+    );
+
+    // 同じメニュー名のものを集計
+    const treatmentRankingMap = new Map<string, TreatmentRanking>();
+    formattedTreatmentRankings.forEach((treatment) => {
+      const existing = treatmentRankingMap.get(treatment.treatment_name);
+      if (existing) {
+        existing.count += treatment.count;
+        existing.total_sales += treatment.total_sales;
+        existing.average_price = existing.total_sales / existing.count;
+      } else {
+        treatmentRankingMap.set(treatment.treatment_name, { ...treatment });
+      }
+    });
+
+    const treatmentRanking = Array.from(treatmentRankingMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
 
     // 4. 支払い方法別分析
     const paymentAnalysis = db
@@ -262,8 +459,8 @@ export async function POST(request: NextRequest) {
       )
       .all(startDate, endDate) as CustomerAnalysis[];
 
-    // 7. 商品販売分析
-    const productAnalysis = db
+    // 7. 商品販売分析（全3項目を取得）
+    const productAnalysis1 = db
       .prepare(
         `
       SELECT 
@@ -284,6 +481,83 @@ export async function POST(request: NextRequest) {
     `
       )
       .all(startDate, endDate) as ProductAnalysis[];
+
+    const productAnalysis2 = db
+      .prepare(
+        `
+      SELECT 
+        retail_product2 as product_name,
+        COALESCE(SUM(retail_product2_quantity), 0) as quantity_sold,
+        COALESCE(SUM(retail_product2_quantity * retail_product2_price), 0) as total_revenue,
+        CASE 
+          WHEN COALESCE(SUM(retail_product2_quantity), 0) > 0 
+          THEN COALESCE(SUM(retail_product2_quantity * retail_product2_price), 0) / COALESCE(SUM(retail_product2_quantity), 0)
+          ELSE 0 
+        END as average_price
+      FROM treatments 
+      WHERE treatment_date >= ? AND treatment_date <= ? 
+        AND retail_product2 IS NOT NULL 
+        AND retail_product2 != ''
+      GROUP BY retail_product2
+      ORDER BY total_revenue DESC
+    `
+      )
+      .all(startDate, endDate) as ProductAnalysis[];
+
+    const productAnalysis3 = db
+      .prepare(
+        `
+      SELECT 
+        retail_product3 as product_name,
+        COALESCE(SUM(retail_product3_quantity), 0) as quantity_sold,
+        COALESCE(SUM(retail_product3_quantity * retail_product3_price), 0) as total_revenue,
+        CASE 
+          WHEN COALESCE(SUM(retail_product3_quantity), 0) > 0 
+          THEN COALESCE(SUM(retail_product3_quantity * retail_product3_price), 0) / COALESCE(SUM(retail_product3_quantity), 0)
+          ELSE 0 
+        END as average_price
+      FROM treatments 
+      WHERE treatment_date >= ? AND treatment_date <= ? 
+        AND retail_product3 IS NOT NULL 
+        AND retail_product3 != ''
+      GROUP BY retail_product3
+      ORDER BY total_revenue DESC
+    `
+      )
+      .all(startDate, endDate) as ProductAnalysis[];
+
+    // すべての商品販売データを結合
+    const allProductAnalysis = [
+      ...productAnalysis1,
+      ...productAnalysis2,
+      ...productAnalysis3,
+    ];
+
+    // 商品名を整形（ID部分を除去）して集計
+    const formattedProductAnalysis = allProductAnalysis.map((product) => ({
+      ...product,
+      product_name: product.product_name.includes("-")
+        ? product.product_name.split("-").slice(0, -1).join("-")
+        : product.product_name,
+    }));
+
+    // 同じ商品名のものを集計
+    const productAnalysisMap = new Map<string, ProductAnalysis>();
+    formattedProductAnalysis.forEach((product) => {
+      const existing = productAnalysisMap.get(product.product_name);
+      if (existing) {
+        existing.quantity_sold += product.quantity_sold;
+        existing.total_revenue += product.total_revenue;
+        existing.average_price =
+          existing.total_revenue / existing.quantity_sold;
+      } else {
+        productAnalysisMap.set(product.product_name, { ...product });
+      }
+    });
+
+    const productAnalysis = Array.from(productAnalysisMap.values()).sort(
+      (a, b) => b.total_revenue - a.total_revenue
+    );
 
     // 8. 割引分析
     const discountAnalysis = db
@@ -311,7 +585,10 @@ export async function POST(request: NextRequest) {
         `
       SELECT 
         t.treatment_date,
+        t.treatment_time,
+        t.treatment_end_time,
         c.name as customer_name,
+        t.customer_name as treatment_customer_name,
         t.stylist_name,
         t.treatment_fee,
         t.retail_fee,
@@ -320,6 +597,12 @@ export async function POST(request: NextRequest) {
         t.treatment_content1,
         t.treatment_content2,
         t.treatment_content3,
+        t.treatment_content4,
+        t.treatment_content5,
+        t.treatment_content6,
+        t.treatment_content7,
+        t.treatment_content8,
+        t.treatment_content_other,
         t.retail_product1,
         t.retail_product1_quantity,
         t.retail_product1_price,
@@ -329,6 +612,9 @@ export async function POST(request: NextRequest) {
         t.retail_product3,
         t.retail_product3_quantity,
         t.retail_product3_price,
+        t.retail_product_other,
+        t.treatment_adjustment,
+        t.retail_adjustment,
         t.treatment_discount_amount,
         t.retail_discount_amount,
         t.treatment_discount_type,
@@ -830,7 +1116,10 @@ function generateDiscountAnalysisCSV(
 function generateDetailedSalesCSV(salesData: SalesDataRow[]): string {
   const headers = [
     "施術日",
+    "施術開始時間",
+    "施術終了時間",
     "顧客名",
+    "施術時顧客名",
     "スタッフ名",
     "施術料",
     "商品販売額",
@@ -839,6 +1128,12 @@ function generateDetailedSalesCSV(salesData: SalesDataRow[]): string {
     "施術内容1",
     "施術内容2",
     "施術内容3",
+    "施術内容4",
+    "施術内容5",
+    "施術内容6",
+    "施術内容7",
+    "施術内容8",
+    "その他施術内容",
     "商品1",
     "商品1数量",
     "商品1価格",
@@ -848,6 +1143,9 @@ function generateDetailedSalesCSV(salesData: SalesDataRow[]): string {
     "商品3",
     "商品3数量",
     "商品3価格",
+    "その他商品",
+    "施術料金調整",
+    "商品料金調整",
     "施術割引額",
     "商品割引額",
     "施術割引種別",
@@ -856,7 +1154,13 @@ function generateDetailedSalesCSV(salesData: SalesDataRow[]): string {
 
   const rows = salesData.map((row) => [
     row.treatment_date,
+    row.treatment_time || "",
+    row.treatment_end_time || "",
     (row.customer_name || "")
+      .replace(/"/g, '""')
+      .replace(/\n/g, " ")
+      .replace(/\r/g, ""),
+    (row.treatment_customer_name || "")
       .replace(/"/g, '""')
       .replace(/\n/g, " ")
       .replace(/\r/g, ""),
@@ -883,6 +1187,30 @@ function generateDetailedSalesCSV(salesData: SalesDataRow[]): string {
       .replace(/"/g, '""')
       .replace(/\n/g, " ")
       .replace(/\r/g, ""),
+    (row.treatment_content4 || "")
+      .replace(/"/g, '""')
+      .replace(/\n/g, " ")
+      .replace(/\r/g, ""),
+    (row.treatment_content5 || "")
+      .replace(/"/g, '""')
+      .replace(/\n/g, " ")
+      .replace(/\r/g, ""),
+    (row.treatment_content6 || "")
+      .replace(/"/g, '""')
+      .replace(/\n/g, " ")
+      .replace(/\r/g, ""),
+    (row.treatment_content7 || "")
+      .replace(/"/g, '""')
+      .replace(/\n/g, " ")
+      .replace(/\r/g, ""),
+    (row.treatment_content8 || "")
+      .replace(/"/g, '""')
+      .replace(/\n/g, " ")
+      .replace(/\r/g, ""),
+    (row.treatment_content_other || "")
+      .replace(/"/g, '""')
+      .replace(/\n/g, " ")
+      .replace(/\r/g, ""),
     (row.retail_product1 || "")
       .replace(/"/g, '""')
       .replace(/\n/g, " ")
@@ -901,6 +1229,12 @@ function generateDetailedSalesCSV(salesData: SalesDataRow[]): string {
       .replace(/\r/g, ""),
     row.retail_product3_quantity || 0,
     row.retail_product3_price || 0,
+    (row.retail_product_other || "")
+      .replace(/"/g, '""')
+      .replace(/\n/g, " ")
+      .replace(/\r/g, ""),
+    row.treatment_adjustment || 0,
+    row.retail_adjustment || 0,
     row.treatment_discount_amount || 0,
     row.retail_discount_amount || 0,
     (row.treatment_discount_type || "")

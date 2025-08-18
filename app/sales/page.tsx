@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calendar,
   DollarSign,
+  FileText,
   Home,
   Percent,
   Scissors,
@@ -281,6 +282,51 @@ export default function SalesDashboard() {
     }
   };
 
+  // 売上データエクスポート機能
+  const handleExportSalesData = async () => {
+    try {
+      const response = await fetch("/api/sales/export", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startDate: customStartDate,
+          endDate: customEndDate,
+          format: "csv",
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const filename = `sales_report_${customStartDate}_${customEndDate}.csv`;
+
+        // ファイルダウンロード
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        const errorText = await response.text();
+        console.error("エクスポートエラーレスポンス:", errorText);
+        alert(
+          `エクスポートに失敗しました: ${response.status} ${response.statusText}`
+        );
+      }
+    } catch (error) {
+      console.error("売上データエクスポートエラー:", error);
+      alert(
+        `エクスポートエラー: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return `¥${amount.toLocaleString()}`;
   };
@@ -353,6 +399,15 @@ export default function SalesDashboard() {
               className="ml-4"
             >
               データ取得
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleExportSalesData}
+              disabled={!customStartDate || !customEndDate}
+              className="ml-4 bg-green-600 hover:bg-green-700"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              エクセル出力
             </Button>
           </div>
         </div>
@@ -856,14 +911,6 @@ export default function SalesDashboard() {
                             <div className="font-medium text-green-600 text-lg">
                               {formatCurrency(menu.total_fee)}
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              平均{" "}
-                              {formatCurrency(
-                                Math.round(
-                                  menu.total_fee / menu.treatment_count
-                                )
-                              )}
-                            </div>
                           </div>
                         </div>
                       ))}
@@ -910,14 +957,6 @@ export default function SalesDashboard() {
                           <div className="text-right">
                             <div className="font-medium text-blue-600 text-lg">
                               {formatCurrency(product.total_sales)}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              平均{" "}
-                              {formatCurrency(
-                                Math.round(
-                                  product.total_sales / product.sale_count
-                                )
-                              )}
                             </div>
                           </div>
                         </div>
