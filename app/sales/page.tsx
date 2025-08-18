@@ -8,11 +8,13 @@ import {
   DollarSign,
   Home,
   Percent,
+  Scissors,
+  ShoppingBag,
   TrendingUp,
   Users,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface SalesSummary {
   total_sales: number;
@@ -68,11 +70,47 @@ interface DiscountData {
   totalDiscountInfo: TotalDiscountInfo;
 }
 
+interface TreatmentMenuStats {
+  menu_name: string;
+  treatment_count: number;
+  total_fee: number;
+}
+
+interface RetailProductStats {
+  product_name: string;
+  sale_count: number;
+  total_sales: number;
+  total_quantity: number;
+}
+
 export default function SalesDashboard() {
   const router = useRouter();
-  const [period, setPeriod] = useState<"today" | "week" | "month" | "year">(
-    "month"
-  );
+  // 現在の月の最初の日と最後の日を取得
+  const getCurrentMonthRange = () => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    // タイムゾーンを考慮して日付を取得
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
+    return {
+      startDate: formatDate(firstDay),
+      endDate: formatDate(lastDay),
+    };
+  };
+
+  const { startDate: defaultStartDate, endDate: defaultEndDate } =
+    getCurrentMonthRange();
+
+  const [customStartDate, setCustomStartDate] =
+    useState<string>(defaultStartDate);
+  const [customEndDate, setCustomEndDate] = useState<string>(defaultEndDate);
   const [activeTab, setActiveTab] = useState("summary");
   const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
   const [dailySales, setDailySales] = useState<DailySales[]>([]);
@@ -81,25 +119,47 @@ export default function SalesDashboard() {
   >([]);
   const [staffSales, setStaffSales] = useState<StaffSales[]>([]);
   const [discountData, setDiscountData] = useState<DiscountData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [treatmentMenuStats, setTreatmentMenuStats] = useState<
+    TreatmentMenuStats[]
+  >([]);
+  const [retailProductStats, setRetailProductStats] = useState<
+    RetailProductStats[]
+  >([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchSalesData();
-  }, [period]);
+  // 初期データ取得は行わない（ユーザーが手動でデータ取得ボタンを押すまで）
 
   const fetchSalesData = async () => {
     setLoading(true);
     try {
-      console.log("売上データ取得開始:", { period });
+      console.log("売上データ取得開始:", {
+        customStartDate,
+        customEndDate,
+      });
 
-      const [summaryRes, dailyRes, paymentRes, staffRes, discountRes] =
-        await Promise.all([
-          fetch(`/api/sales/summary?period=${period}`),
-          fetch(`/api/sales/daily?period=${period}`),
-          fetch(`/api/sales/by-payment?period=${period}`),
-          fetch(`/api/sales/by-staff?period=${period}`),
-          fetch(`/api/sales/by-discount?period=${period}`),
-        ]);
+      // 日付パラメータを追加
+      const customParams =
+        customStartDate && customEndDate
+          ? `&startDate=${customStartDate}&endDate=${customEndDate}`
+          : "";
+
+      const [
+        summaryRes,
+        dailyRes,
+        paymentRes,
+        staffRes,
+        discountRes,
+        treatmentMenuRes,
+        retailProductRes,
+      ] = await Promise.all([
+        fetch(`/api/sales/summary?period=custom${customParams}`),
+        fetch(`/api/sales/daily?period=custom${customParams}`),
+        fetch(`/api/sales/by-payment?period=custom${customParams}`),
+        fetch(`/api/sales/by-staff?period=custom${customParams}`),
+        fetch(`/api/sales/by-discount?period=custom${customParams}`),
+        fetch(`/api/sales/by-treatment-menu?period=custom${customParams}`),
+        fetch(`/api/sales/by-retail-product?period=custom${customParams}`),
+      ]);
 
       console.log("APIレスポンス状況:", {
         summary: { ok: summaryRes.ok, status: summaryRes.status },
@@ -107,6 +167,14 @@ export default function SalesDashboard() {
         payment: { ok: paymentRes.ok, status: paymentRes.status },
         staff: { ok: staffRes.ok, status: staffRes.status },
         discount: { ok: discountRes.ok, status: discountRes.status },
+        treatmentMenu: {
+          ok: treatmentMenuRes.ok,
+          status: treatmentMenuRes.status,
+        },
+        retailProduct: {
+          ok: retailProductRes.ok,
+          status: retailProductRes.status,
+        },
       });
 
       if (summaryRes.ok) {
@@ -178,6 +246,34 @@ export default function SalesDashboard() {
         const errorText = await discountRes.text();
         console.error("エラー詳細:", errorText);
       }
+
+      if (treatmentMenuRes.ok) {
+        const treatmentMenuData = await treatmentMenuRes.json();
+        console.log("施術メニュー別データ:", treatmentMenuData);
+        setTreatmentMenuStats(treatmentMenuData);
+      } else {
+        console.error(
+          "施術メニュー別APIエラー:",
+          treatmentMenuRes.status,
+          treatmentMenuRes.statusText
+        );
+        const errorText = await treatmentMenuRes.text();
+        console.error("エラー詳細:", errorText);
+      }
+
+      if (retailProductRes.ok) {
+        const retailProductData = await retailProductRes.json();
+        console.log("店販商品別データ:", retailProductData);
+        setRetailProductStats(retailProductData);
+      } else {
+        console.error(
+          "店販商品別APIエラー:",
+          retailProductRes.status,
+          retailProductRes.statusText
+        );
+        const errorText = await retailProductRes.text();
+        console.error("エラー詳細:", errorText);
+      }
     } catch (error) {
       console.error("売上データの取得に失敗しました:", error);
     } finally {
@@ -190,18 +286,9 @@ export default function SalesDashboard() {
   };
 
   const getPeriodLabel = () => {
-    switch (period) {
-      case "today":
-        return "今日";
-      case "week":
-        return "今週";
-      case "month":
-        return "今月";
-      case "year":
-        return "今年";
-      default:
-        return "今月";
-    }
+    return customStartDate && customEndDate
+      ? `${customStartDate} 〜 ${customEndDate}`
+      : "期間を選択してください";
   };
 
   if (loading) {
@@ -232,26 +319,46 @@ export default function SalesDashboard() {
 
       <div className="space-y-6">
         {/* 期間選択とレポート出力 */}
-        <div className="flex justify-between items-center">
-          <div className="flex gap-2">
-            {(["today", "week", "month", "year"] as const).map((p) => (
-              <Button
-                key={p}
-                variant={period === p ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPeriod(p)}
-              >
-                {p === "today" && "今日"}
-                {p === "week" && "今週"}
-                {p === "month" && "今月"}
-                {p === "year" && "今年"}
-              </Button>
-            ))}
+        <div className="space-y-4">
+          {/* カスタム期間選択 */}
+          <div className="flex gap-4 items-center p-4 border rounded-lg bg-gray-50">
+            <div className="flex items-center gap-2">
+              <label htmlFor="startDate" className="text-sm font-medium">
+                開始日:
+              </label>
+              <input
+                id="startDate"
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="px-3 py-1 border rounded text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="endDate" className="text-sm font-medium">
+                終了日:
+              </label>
+              <input
+                id="endDate"
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="px-3 py-1 border rounded text-sm"
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={fetchSalesData}
+              disabled={!customStartDate || !customEndDate}
+              className="ml-4"
+            >
+              データ取得
+            </Button>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="summary" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
               <span className="hidden md:inline">売上サマリー</span>
@@ -271,6 +378,20 @@ export default function SalesDashboard() {
             <TabsTrigger value="discount" className="flex items-center gap-2">
               <Percent className="h-4 w-4" />
               <span className="hidden md:inline">割引情報</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="treatment-menu"
+              className="flex items-center gap-2"
+            >
+              <Scissors className="h-4 w-4" />
+              <span className="hidden md:inline">施術メニュー別</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="retail-product"
+              className="flex items-center gap-2"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              <span className="hidden md:inline">店販商品別</span>
             </TabsTrigger>
           </TabsList>
 
@@ -703,6 +824,115 @@ export default function SalesDashboard() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* 施術メニュー別タブ */}
+          <TabsContent value="treatment-menu">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Scissors className="h-5 w-5" />
+                    施術メニュー別統計
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {treatmentMenuStats.length > 0 ? (
+                    <div className="space-y-4">
+                      {treatmentMenuStats.map((menu) => (
+                        <div
+                          key={menu.menu_name}
+                          className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50"
+                        >
+                          <div>
+                            <div className="font-medium text-lg">
+                              {menu.menu_name}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {menu.treatment_count}回の施術
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium text-green-600 text-lg">
+                              {formatCurrency(menu.total_fee)}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              平均{" "}
+                              {formatCurrency(
+                                Math.round(
+                                  menu.total_fee / menu.treatment_count
+                                )
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">
+                        施術メニューデータがありません
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* 店販商品別タブ */}
+          <TabsContent value="retail-product">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShoppingBag className="h-5 w-5" />
+                    店販商品別統計
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {retailProductStats.length > 0 ? (
+                    <div className="space-y-4">
+                      {retailProductStats.map((product) => (
+                        <div
+                          key={product.product_name}
+                          className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50"
+                        >
+                          <div>
+                            <div className="font-medium text-lg">
+                              {product.product_name}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {product.sale_count}回の販売・
+                              {product.total_quantity}個
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium text-blue-600 text-lg">
+                              {formatCurrency(product.total_sales)}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              平均{" "}
+                              {formatCurrency(
+                                Math.round(
+                                  product.total_sales / product.sale_count
+                                )
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">
+                        店販商品データがありません
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

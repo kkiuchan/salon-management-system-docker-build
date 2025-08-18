@@ -5,35 +5,46 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "month";
+    const customStartDate = searchParams.get("startDate");
+    const customEndDate = searchParams.get("endDate");
 
     // 期間に応じた日付範囲を計算
     const now = new Date();
     let startDate: string;
-    const endDate: string = now.toISOString().split("T")[0];
+    let endDate: string;
 
-    switch (period) {
-      case "today":
-        startDate = now.toISOString().split("T")[0];
-        break;
-      case "week":
-        const weekAgo = new Date(now);
-        weekAgo.setDate(now.getDate() - 7);
-        startDate = weekAgo.toISOString().split("T")[0];
-        break;
-      case "month":
-        const monthAgo = new Date(now);
-        monthAgo.setMonth(now.getMonth() - 1);
-        startDate = monthAgo.toISOString().split("T")[0];
-        break;
-      case "year":
-        const yearAgo = new Date(now);
-        yearAgo.setFullYear(now.getFullYear() - 1);
-        startDate = yearAgo.toISOString().split("T")[0];
-        break;
-      default:
-        const defaultMonthAgo = new Date(now);
-        defaultMonthAgo.setMonth(now.getMonth() - 1);
-        startDate = defaultMonthAgo.toISOString().split("T")[0];
+    // カスタム期間の場合は指定された日付を使用
+    if (period === "custom" && customStartDate && customEndDate) {
+      startDate = customStartDate;
+      endDate = customEndDate;
+    } else {
+      // デフォルトの期間計算
+      endDate = now.toISOString().split("T")[0];
+
+      switch (period) {
+        case "today":
+          startDate = now.toISOString().split("T")[0];
+          break;
+        case "week":
+          const weekAgo = new Date(now);
+          weekAgo.setDate(now.getDate() - 7);
+          startDate = weekAgo.toISOString().split("T")[0];
+          break;
+        case "month":
+          const monthAgo = new Date(now);
+          monthAgo.setMonth(now.getMonth() - 1);
+          startDate = monthAgo.toISOString().split("T")[0];
+          break;
+        case "year":
+          const yearAgo = new Date(now);
+          yearAgo.setFullYear(now.getFullYear() - 1);
+          startDate = yearAgo.toISOString().split("T")[0];
+          break;
+        default:
+          const defaultMonthAgo = new Date(now);
+          defaultMonthAgo.setMonth(now.getMonth() - 1);
+          startDate = defaultMonthAgo.toISOString().split("T")[0];
+      }
     }
 
     // スタッフ別売上データを取得
